@@ -3,31 +3,36 @@ using System.Collections.Generic;
 using UnityEngine;
 using SocketIOClient;
 using SocketIOClient.Newtonsoft.Json;
-using UnityEngine.UI;
 
 public class NetworkManager : MonoBehaviour {
-
-   private SocketIOUnity socket;
 
    [Header("Server Options")]
    public int FPS = 10;
    public string URL = "http://localhost:3000/";
 
-   [Header("Player GameObject")]
-   public GameObject Player;
+   [Header("Attached Objects")]
+   public GameObject GameHandler;
 
+   // Private Scripts
+   private SocketIOUnity socket;
+   private GameHandler gameHandler;
+
+   // Private Variables
    private float FrameRate() { return Mathf.Floor(1f/FPS *1000)/1000; }
-   private float posX() { return Mathf.Floor(Player.transform.position.x *10) /10; }
-   private bool isAttacking() { return Player.GetComponent<PlayerAttack>().isAttacking; }
-
-   // **********************************
-   public string playerName;
-   public string battleName;
-   private List<string> createBattleData = new List<string>();
-   // **********************************
 
 
-   // Sync
+   // ====================================================================================
+   // Start
+   // ====================================================================================
+   public void Start() {
+      
+      gameHandler = GameHandler.GetComponent<GameHandler>();
+   }
+
+
+   // ====================================================================================
+   // Server Sync Methods (Every Fame)
+   // ====================================================================================
    public void StartSync(string methodName) {
       InvokeRepeating(methodName, 0, FrameRate());
    }
@@ -37,19 +42,11 @@ public class NetworkManager : MonoBehaviour {
    }
 
 
-   // Menu Methods
-   public void SetPlayerName() {
-      string playerName = GameObject.Find("PlayerNameField").GetComponent<InputField>().text;
-   }
+   // ====================================================================================
+   // // Init Socket IO
+   // ====================================================================================
+   public void SocketIO_Connect() {
 
-   public void SetBattleName() {
-      string playerName = GameObject.Find("BattleNameField").GetComponent<InputField>().text;
-   }
-
-   // Create Battle / Init Socket IO
-	public void CreateBattle() {
-
-      // Init Socket IO
       socket = new SocketIOUnity(URL, new SocketIOOptions {
          Query = new Dictionary<string, string> {
             {"token", "UNITY" }
@@ -60,53 +57,149 @@ public class NetworkManager : MonoBehaviour {
 
       socket.JsonSerializer = new NewtonsoftJsonSerializer();
       socket.Connect();
-      
-      // Socket listener
-      socket.On("Get", (data) => Debug.Log(data));
 
-      // Data to send
-      string playerName = GameObject.Find("PlayerNameField").GetComponent<InputField>().text;
-      string battleName = GameObject.Find("BattleNameField").GetComponent<InputField>().text;
-      createBattleData.Add(playerName);
-      createBattleData.Add(battleName);
-      
-      // Fix latency
-      StartCoroutine(sendCreateBattle());
+      // ************************  DEBUG  ************************
+      socket.On("Get", (data) => Debug.Log(data));      
+      // ************************  DEBUG  ************************
    }
 
-   IEnumerator sendCreateBattle() {
-      yield return new WaitForSeconds(0.5f);
-      socket.Emit("createBattle", createBattleData);
-      createBattleData.Clear();
+   public void SocketIO_Disconnect() {
+      socket.Disconnect();
+   }
+
+
+   // ====================================================================================
+   // Menu Methods
+   // ====================================================================================
+   
+   // ================= Create Battle =================
+	public void CreateBattle() {
+      SocketIO_Connect();
+      StartCoroutine(FixLatency());
+   }
+
+   IEnumerator FixLatency() {
+      CreatedBattle createdBattle = new CreatedBattle(
+         gameHandler.playerName(),
+         gameHandler.battleName()
+      );
+
+      yield return new WaitForSeconds(0.3f);
+      socket.Emit("createBattle", createdBattle);
+   }
+
+   // Create Battle Class
+   [System.Serializable]
+   class CreatedBattle {
+
+      public string playerName;
+      public string battleName;
+
+      public CreatedBattle(
+         string playerName,
+         string battleName) {
+            
+         this.playerName = playerName;
+         this.battleName = battleName;
+      }
+   }
+
+
+   // ================= Find Battle =================
+   public void SearchBattle() {
+      socket.Emit("findBattle");
    }
 
    public void FindBattle() {
-      socket.Emit("findBattle", "FindBattle");
+
+      SocketIO_Connect();
+      StartSync("SearchBattle");
+
+      socket.On("battleFound", (response) => {
+         var battle = response.GetValue<FoundBattle>();
+         gameHandler.joinableBattle.Add(new string[] { battle.id, battle.name });
+      });
    }
 
+   // Found Battle Class
+   [System.Serializable]
+   class FoundBattle {
+
+      public string id;
+      public string name;
+
+      public FoundBattle(string id, string name) {
+         this.id = id;
+         this.name = name;
+      }
+   }
+
+   // ================= Join Battle =================
    public void JoinBattle() {
       socket.Emit("joinBattle", "JoinBattle");
    }
 
+
+   // ================= Leave Battle =================
    public void LeaveBattle() {
       socket.Disconnect();
    }
 
 
+   // ================= Quit Application =================
+   public void QuitApplication() {
+      Application.Quit();
+   }
+
+
+   // ====================================================================================
    // Player Methods
-	public void MoveLeft() {
-      socket.Emit("Left", posX());
+   // ====================================================================================
+   public void MoveLeft() {
+      socket.Emit("Left", gameHandler.posX());
    }
 
    public void MoveRight() {
-      socket.Emit("Right", posX());
+      socket.Emit("Right", gameHandler.posX());
    }
 
-   public void AttackingStrike() {
-      socket.Emit("AttackingStrike", isAttacking());
+   public void AttackStrike() {
+      socket.Emit("AttackStrike", gameHandler.isAttacking());
    }
 
-   public void AttackingEstoc() {
-      socket.Emit("AttackingEstoc", isAttacking());
+   public void AttackEstoc() {
+      socket.Emit("AttackEstoc", gameHandler.isAttacking());
+
+      // *******************************************
+      socket.On("azerty", (response) => {
+
+         var dataObj = response.GetValue<TestData>();
+
+         string aze = dataObj.name;
+         int qsd = dataObj.id;
+         bool wxc = dataObj.isPos;
+
+         Debug.Log(aze);
+         Debug.Log(qsd);
+         Debug.Log(wxc);
+      });
+      // *******************************************
    }
+
+
+   // *******************************************
+   [System.Serializable]
+   class TestData {
+
+      public string name;
+      public int id;
+      public bool isPos;
+
+      public TestData(string name, int id, bool isPos) {
+         this.name = name;
+         this.id = id;
+         this.isPos = isPos;
+      }
+   }
+   // *******************************************
 }
