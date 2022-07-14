@@ -5,16 +5,17 @@ using UnityEngine.UI;
 
 public class GameHandler : MonoBehaviour {
 
-    [Header("Attached Objects")]
+    [Header("**Attached Objects**")]
     public GameObject Player;
     public InputField PlayerNameField;
     public InputField BattleNameField;
+    public GameObject JoinBtn;
+    public GameObject ScrollContent;
 
     // Variables
     [HideInInspector] public string playerName() { return PlayerNameField.text; }
     [HideInInspector] public string battleName() { return BattleNameField.text; }
-    [HideInInspector] public List<string[]> joinableBattle = new List<string[]>();
-
+    [HideInInspector] public List<string> battleIDList = new List<string>();
 
     // Test Var
     [HideInInspector] public float posX() { return Mathf.Floor(Player.transform.position.x *10) /10; }

@@ -3,14 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using SocketIOClient;
 using SocketIOClient.Newtonsoft.Json;
+using UnityEngine.Networking; // ==> UnityWebRequest
+using Newtonsoft.Json; // ==> JsonConvert.DeserializeObject
+using UnityEngine.UI;
+using TMPro;
 
 public class NetworkManager : MonoBehaviour {
-
-   [Header("Server Options")]
+   
+   [Header("**Server Options**")]
    public int FPS = 10;
    public string URL = "http://localhost:3000/";
 
-   [Header("Attached Objects")]
+   [Header("**Attached Objects**")]
    public GameObject GameHandler;
 
    // Private Scripts
@@ -25,7 +29,22 @@ public class NetworkManager : MonoBehaviour {
    // Start
    // ====================================================================================
    public void Start() {
+
+      // Init Socket IO
+      socket = new SocketIOUnity(URL, new SocketIOOptions {
+         Query = new Dictionary<string, string> {
+            {"token", "UNITY" }
+         },
+         EIO = 4,
+         Transport = SocketIOClient.Transport.TransportProtocol.WebSocket
+      });
+      socket.JsonSerializer = new NewtonsoftJsonSerializer();
+      // ************************  DEBUG  ************************
+      socket.On("Get", (data) => Debug.Log(data));
+      // ************************  DEBUG  ************************
       
+      
+
       gameHandler = GameHandler.GetComponent<GameHandler>();
    }
 
@@ -43,24 +62,10 @@ public class NetworkManager : MonoBehaviour {
 
 
    // ====================================================================================
-   // // Init Socket IO
+   // Socket IO Connection
    // ====================================================================================
    public void SocketIO_Connect() {
-
-      socket = new SocketIOUnity(URL, new SocketIOOptions {
-         Query = new Dictionary<string, string> {
-            {"token", "UNITY" }
-         },
-         EIO = 4,
-         Transport = SocketIOClient.Transport.TransportProtocol.WebSocket
-      });
-
-      socket.JsonSerializer = new NewtonsoftJsonSerializer();
       socket.Connect();
-
-      // ************************  DEBUG  ************************
-      socket.On("Get", (data) => Debug.Log(data));      
-      // ************************  DEBUG  ************************
    }
 
    public void SocketIO_Disconnect() {
@@ -71,7 +76,6 @@ public class NetworkManager : MonoBehaviour {
    // ====================================================================================
    // Menu Methods
    // ====================================================================================
-   
    // ================= Create Battle =================
 	public void CreateBattle() {
       SocketIO_Connect();
@@ -106,19 +110,48 @@ public class NetworkManager : MonoBehaviour {
 
 
    // ================= Find Battle =================
+   public void RefreshBattleList(string methodName) {
+      InvokeRepeating(methodName, 0, 1);
+   }
+
    public void SearchBattle() {
-      socket.Emit("findBattle");
+      StartCoroutine(GetBattleList());
    }
 
    public void FindBattle() {
-
       SocketIO_Connect();
-      StartSync("SearchBattle");
+      RefreshBattleList("SearchBattle");
+   }
 
-      socket.On("battleFound", (response) => {
-         var battle = response.GetValue<FoundBattle>();
-         gameHandler.joinableBattle.Add(new string[] { battle.id, battle.name });
-      });
+   // Web Request
+   IEnumerator GetBattleList() {
+
+      UnityWebRequest request = UnityWebRequest.Get(URL);
+      yield return request.SendWebRequest();
+
+      if(!request.isNetworkError) {
+
+         int offsetY = 150;
+         int btnCount = 0;
+
+         var battleArray = JsonConvert.DeserializeObject<FoundBattle[]>(request.downloadHandler.text);
+
+         // Render list of battles
+         foreach (var battle in battleArray) {
+
+            if(!gameHandler.battleIDList.Contains(battle.id)) {
+               gameHandler.battleIDList.Add(battle.id);
+
+               GameObject JoinBtn = Instantiate(gameHandler.JoinBtn, new Vector3(0, -btnCount *offsetY), Quaternion.identity);
+               JoinBtn.transform.SetParent(gameHandler.ScrollContent.transform, false);
+
+               JoinBtn.transform.Find("BattleID").gameObject.GetComponent<TMP_Text>().text = battle.id;
+               JoinBtn.transform.Find("BattleName").gameObject.GetComponent<TMP_Text>().text = battle.name;
+
+               btnCount++;
+            }
+         }
+      }
    }
 
    // Found Battle Class
@@ -134,20 +167,31 @@ public class NetworkManager : MonoBehaviour {
       }
    }
 
+
    // ================= Join Battle =================
    public void JoinBattle() {
       socket.Emit("joinBattle", "JoinBattle");
    }
-
+   
 
    // ================= Leave Battle =================
    public void LeaveBattle() {
       socket.Disconnect();
    }
 
+   public void RemoveBattle() {
+      socket.On("battleEnded", (response) => {
+         
+         // GameObject.Find("Battle Button By id")
+         // Destroy( Battle Button By id );
+         Debug.Log(response.GetValue());
+      });
+   }
+
 
    // ================= Quit Application =================
    public void QuitApplication() {
+      SocketIO_Disconnect();
       Application.Quit();
    }
 
@@ -169,37 +213,5 @@ public class NetworkManager : MonoBehaviour {
 
    public void AttackEstoc() {
       socket.Emit("AttackEstoc", gameHandler.isAttacking());
-
-      // *******************************************
-      socket.On("azerty", (response) => {
-
-         var dataObj = response.GetValue<TestData>();
-
-         string aze = dataObj.name;
-         int qsd = dataObj.id;
-         bool wxc = dataObj.isPos;
-
-         Debug.Log(aze);
-         Debug.Log(qsd);
-         Debug.Log(wxc);
-      });
-      // *******************************************
    }
-
-
-   // *******************************************
-   [System.Serializable]
-   class TestData {
-
-      public string name;
-      public int id;
-      public bool isPos;
-
-      public TestData(string name, int id, bool isPos) {
-         this.name = name;
-         this.id = id;
-         this.isPos = isPos;
-      }
-   }
-   // *******************************************
 }
