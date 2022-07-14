@@ -15,7 +15,8 @@ public class GameHandler : MonoBehaviour {
     // Variables
     [HideInInspector] public string playerName() { return PlayerNameField.text; }
     [HideInInspector] public string battleName() { return BattleNameField.text; }
-    [HideInInspector] public List<string> battleIDList = new List<string>();
+    [HideInInspector] public List<string> existBattle_IDList = new List<string>();
+    [HideInInspector] public List<string> newBattles_IDList = new List<string>();
 
     // Test Var
     [HideInInspector] public float posX() { return Mathf.Floor(Player.transform.position.x *10) /10; }

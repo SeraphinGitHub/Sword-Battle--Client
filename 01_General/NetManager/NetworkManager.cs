@@ -42,8 +42,6 @@ public class NetworkManager : MonoBehaviour {
       // ************************  DEBUG  ************************
       socket.On("Get", (data) => Debug.Log(data));
       // ************************  DEBUG  ************************
-      
-      
 
       gameHandler = GameHandler.GetComponent<GameHandler>();
    }
@@ -110,45 +108,100 @@ public class NetworkManager : MonoBehaviour {
 
 
    // ================= Find Battle =================
-   public void RefreshBattleList(string methodName) {
-      InvokeRepeating(methodName, 0, 1);
-   }
-
-   public void SearchBattle() {
-      StartCoroutine(GetBattleList());
-   }
-
    public void FindBattle() {
       SocketIO_Connect();
       RefreshBattleList("SearchBattle");
    }
 
-   // Web Request
-   IEnumerator GetBattleList() {
+   public void RefreshBattleList(string methodName) {
+      InvokeRepeating(methodName, 0, 1);
+   }
 
-      UnityWebRequest request = UnityWebRequest.Get(URL);
+   public void SearchBattle() {
+      StartCoroutine(RenderBattleList());
+   }   
+
+   // Web Request (Render list of battles)
+   IEnumerator RenderBattleList() {
+
+      UnityWebRequest request = UnityWebRequest.Get(URL + "find-battle");
       yield return request.SendWebRequest();
 
       if(!request.isNetworkError) {
 
-         int offsetY = 150;
-         int btnCount = 0;
+         gameHandler.newBattles_IDList.Clear();
+         RectTransform ScrollContent = gameHandler.ScrollContent.transform.GetComponent<RectTransform>();
 
          var battleArray = JsonConvert.DeserializeObject<FoundBattle[]>(request.downloadHandler.text);
+
+         int firstBattleOffsetY = 20;
+         int battleOffsetY = 155;
+         int battleCountBeforeScroll = 5;
 
          // Render list of battles
          foreach (var battle in battleArray) {
 
-            if(!gameHandler.battleIDList.Contains(battle.id)) {
-               gameHandler.battleIDList.Add(battle.id);
+            gameHandler.newBattles_IDList.Add(battle.id);
 
-               GameObject JoinBtn = Instantiate(gameHandler.JoinBtn, new Vector3(0, -btnCount *offsetY), Quaternion.identity);
+            if(!gameHandler.existBattle_IDList.Contains(battle.id)) {
+               int battleCount = gameHandler.existBattle_IDList.Count;
+
+               GameObject JoinBtn = Instantiate(gameHandler.JoinBtn, new Vector3(0, -firstBattleOffsetY -battleOffsetY *battleCount), Quaternion.identity);
                JoinBtn.transform.SetParent(gameHandler.ScrollContent.transform, false);
 
                JoinBtn.transform.Find("BattleID").gameObject.GetComponent<TMP_Text>().text = battle.id;
                JoinBtn.transform.Find("BattleName").gameObject.GetComponent<TMP_Text>().text = battle.name;
 
-               btnCount++;
+               if(battleCount >= battleCountBeforeScroll) {
+                  ScrollContent.sizeDelta = new Vector2(0, ScrollContent.sizeDelta.y + battleOffsetY);
+               }
+
+               gameHandler.existBattle_IDList.Add(battle.id);
+            }
+         }
+
+         // foreach (Transform JoinBtn in gameHandler.ScrollContent.transform) {
+
+         //    string BattleID = JoinBtn.Find("BattleID").GetComponent<TMP_Text>().text;            
+               
+         //    if(!gameHandler.newBattles_IDList.Contains(BattleID)) {
+         //       int battleCount = gameHandler.existBattle_IDList.Count;
+
+         //       Debug.Log("Battle id: "+ BattleID +" has been Destroyed !");
+         //       Destroy(JoinBtn.gameObject);
+
+         //       if(battleCount >= battleCountBeforeScroll) {
+         //          ScrollContent.sizeDelta = new Vector2(0, ScrollContent.sizeDelta.y - battleOffsetY);
+         //       }
+         //    }
+         // }
+
+
+         int renderedBattleCount = gameHandler.ScrollContent.transform.childCount;
+         // Debug.Log(renderedBattleCount);
+
+         for(int i = 0; i < renderedBattleCount; i++) {
+
+            Transform JoinBtn = ScrollContent.GetChild(i);
+            string BattleID = JoinBtn.Find("BattleID").GetComponent<TMP_Text>().text;            
+               
+            if(!gameHandler.newBattles_IDList.Contains(BattleID)) {
+
+               Debug.Log("Battle id: "+ BattleID +" has been Destroyed !");
+               Destroy(JoinBtn.gameObject);
+
+               for(int j = 0; j < renderedBattleCount -i; j++) {
+
+                  RectTransform JoinOtherBtn = ScrollContent.GetChild(j).GetComponent<RectTransform>();
+                  JoinOtherBtn.anchoredPosition = new Vector2(0, JoinOtherBtn.anchoredPosition.y + battleOffsetY);
+               
+               }
+
+               int battleCount = gameHandler.existBattle_IDList.Count;
+
+               if(battleCount >= battleCountBeforeScroll) {
+                  ScrollContent.sizeDelta = new Vector2(0, ScrollContent.sizeDelta.y - battleOffsetY);
+               }
             }
          }
       }
@@ -179,11 +232,9 @@ public class NetworkManager : MonoBehaviour {
       socket.Disconnect();
    }
 
-   public void RemoveBattle() {
+   public void BattleEnded() {
       socket.On("battleEnded", (response) => {
          
-         // GameObject.Find("Battle Button By id")
-         // Destroy( Battle Button By id );
          Debug.Log(response.GetValue());
       });
    }
