@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using SocketIOClient;
 using SocketIOClient.Newtonsoft.Json;
-using UnityEngine.Networking; // ==> UnityWebRequest
-using Newtonsoft.Json; // ==> JsonConvert.DeserializeObject
 using UnityEngine.UI;
 using TMPro;
 
@@ -12,40 +10,68 @@ public class GameHandler : MonoBehaviour {
    
    [Header("**Server Options**")]
    public int FPS = 10;
-   public string URL = "http://localhost:3000/";
+   public int endBattleCD = 3; //seconds
+   public string serverURL = "http://localhost:3000/";
 
    [Header("**BattleList Options**")]
    public int firstBattleOffsetY = 20;
    public int battleOffsetY = 155;
    public int battleCountBeforeScroll = 5;
 
-   [Header("**Attached Objects**")]
-   public GameObject PlayerPrefab;
-   public InputField PlayerNameField;
-   public InputField BattleNameField;
-   public GameObject JoinBtnPrefab;
-   public RectTransform ScrollContent;
+   [Header("**Attached Transforms**")]
+   public RectTransform scrollContent;
+
+   [Header("**Attached Prefabs**")]
+   public GameObject playerPrefab;
+   public GameObject joinBtnPrefab;
+
+   [Header("**Attached Canvas**")]
+   public GameObject mainMenu;
+   public GameObject findBattleMenu;
+   public GameObject optionsMenu;
+   public GameObject battleUI;
+
+   [Header("**Attached InputFields**")]
+   public InputField playerNameField;
+   public InputField battleNameField;
+   
+   [Header("**Attached TextMeshPro**")]
+   public TextMeshProUGUI serverMessageTMP;
+   public TextMeshProUGUI countDownTMP;
+   public TextMeshProUGUI battleNameTMP;
+   public TextMeshProUGUI leftPlayerNameTMP;
+   public TextMeshProUGUI rightPlayerNameTMP;
 
    // Private Variables
    private SocketIOUnity socket;
-   private float FrameRate() { return Mathf.Floor(1f/FPS *1000)/1000; }
-   private string playerName() { return PlayerNameField.text; }
-   private string battleName() { return BattleNameField.text; }
+   private float frameRate;
+   private string playerName;
+   private string battleName;
+   private int baseEndBattleCD() { return endBattleCD; }
    private List<string> existBattle_IDList = new List<string>();
    private List<string> newBattles_IDList = new List<string>();
 
    // Test Var
-   private float posX() { return Mathf.Floor(PlayerPrefab.transform.position.x *10) /10; }
-   private bool isAttacking() { return PlayerPrefab.GetComponent<PlayerAttack>().isAttacking; }
-
+   private float posX;
+   private bool isAttacking;
 
    // ====================================================================================
-   // Start
+   // Awake() / Start()
    // ====================================================================================
+   public void Awake() {
+      // mainMenu.SetActive(true);
+      // findBattleMenu.SetActive(false);
+      // optionsMenu.SetActive(false);
+      // battleUI.SetActive(false);
+
+      serverMessageTMP.gameObject.SetActive(false);
+      countDownTMP.gameObject.SetActive(false);
+   }
+
    public void Start() {
 
       // Init Socket IO
-      socket = new SocketIOUnity(URL, new SocketIOOptions {
+      socket = new SocketIOUnity(serverURL, new SocketIOOptions {
          Query = new Dictionary<string, string> {
             {"token", "UNITY" }
          },
@@ -57,6 +83,70 @@ public class GameHandler : MonoBehaviour {
       // ************************  DEBUG  ************************
       socket.On("Get", (data) => Debug.Log(data));
       // ************************  DEBUG  ************************
+socket.Connect();
+
+      playerName = playerNameField.text;
+      battleName = battleNameField.text;
+      frameRate = Mathf.Floor(1f/FPS *1000)/1000;
+
+      // // Test Var
+      // posX = Mathf.Floor(playerPrefab.transform.position.x *10) /10;
+      // isAttacking = playerPrefab.GetComponent<PlayerAttack>().isAttacking;
+
+
+      // ====================================================================================
+      // Socket.io Listening
+      // ====================================================================================
+      socket.OnAnyInUnityThread((channel, response) => {
+         
+         // ================= Create Battle =================
+         if(channel == "battleCreated") {
+            mainMenu.SetActive(false);
+            battleUI.SetActive(true);
+            battleNameTMP.text = battleName;
+            leftPlayerNameTMP.text = playerName;
+            rightPlayerNameTMP.text = "";
+
+            // Debug.Log(response.GetValue());
+         }
+
+         // ================= Leave Battle =================
+         if(channel == "battleEnded") {
+            string serverMessage = response.GetValue().GetRawText();
+            serverMessageTMP.text = serverMessage;
+            serverMessageTMP.gameObject.SetActive(true);
+
+            if(serverMessage.Contains("Host")) {
+               countDownTMP.gameObject.SetActive(true);
+               StartCoroutine(CountDown());
+               StartCoroutine(DisplayCountDown());
+            }
+
+            else {
+               mainMenu.SetActive(true);
+               battleUI.SetActive(false);
+               serverMessageTMP.gameObject.SetActive(false);
+               countDownTMP.gameObject.SetActive(false);
+            }
+
+            // Debug.Log(response.GetValue());
+         }
+      });
+   }   
+
+   IEnumerator DisplayCountDown() {
+      yield return new WaitForSeconds(1);
+      countDownTMP.text = endBattleCD.ToString();
+      endBattleCD--;
+      if(endBattleCD <= 0) endBattleCD = baseEndBattleCD();
+   }
+
+   IEnumerator CountDown() {
+      yield return new WaitForSeconds(endBattleCD);
+      mainMenu.SetActive(true);
+      battleUI.SetActive(false);
+      serverMessageTMP.gameObject.SetActive(false);
+      countDownTMP.gameObject.SetActive(false);
    }
 
 
@@ -64,7 +154,7 @@ public class GameHandler : MonoBehaviour {
    // Server Sync Methods (Every Fame)
    // ====================================================================================
    public void StartSync(string methodName) {
-      InvokeRepeating(methodName, 0, FrameRate());
+      InvokeRepeating(methodName, 0, frameRate);
    }
 
    public void StopSync() {
@@ -81,6 +171,18 @@ public class GameHandler : MonoBehaviour {
 
    public void SocketIO_Disconnect() {
       socket.Disconnect();
+   }
+
+
+   // ====================================================================================
+   // Update inputFields OnChange()
+   // ====================================================================================
+   public void UpdatePlayerName() {
+      playerName = playerNameField.text;
+   }
+
+   public void UpdateBattleName() {
+      battleName = battleNameField.text;
    }
 
 
@@ -115,16 +217,12 @@ public class GameHandler : MonoBehaviour {
    // ================= Create Battle =================
 	public void CreateBattle() {
       SocketIO_Connect();
-      StartCoroutine(FixLatency());
+      StartCoroutine(SetNewBattle()); // Await for Socket.io to be connected
    }
 
-   IEnumerator FixLatency() {
-      CreatedBattleClass createdBattle = new CreatedBattleClass(
-         playerName(),
-         battleName()
-      );
-
-      yield return new WaitForSeconds(0.3f);
+   IEnumerator SetNewBattle() {
+      CreatedBattleClass createdBattle = new CreatedBattleClass(playerName, battleName);
+      yield return new WaitForSeconds(0.2f);
       socket.Emit("createBattle", createdBattle);
    }
 
@@ -132,7 +230,7 @@ public class GameHandler : MonoBehaviour {
    // ================= Find Battle =================
    public void FindBattle() {
       SocketIO_Connect();
-      RefreshBattleList("SearchBattle");
+      RefreshBattleList("SetBattleList");
    }
 
    public void RefreshBattleList(string methodName) {
@@ -140,18 +238,10 @@ public class GameHandler : MonoBehaviour {
       InvokeRepeating(methodName, 0, refreshRate);
    }
 
-   public void SearchBattle() {
-      StartCoroutine(RenderBattleList());
-   }   
+   public void SetBattleList() {
+      socket.OnUnityThread("findBattle", (response) => {
 
-   // Web Request (Render list of battles)
-   IEnumerator RenderBattleList() {
-
-      UnityWebRequest request = UnityWebRequest.Get(URL + "find-battle");
-      yield return request.SendWebRequest();
-
-      if(!request.isNetworkError) {
-         var battlesArray = JsonConvert.DeserializeObject<FoundBattleClass[]>(request.downloadHandler.text);
+         var battlesArray = response.GetValue<FoundBattleClass[]>();
          newBattles_IDList.Clear();
 
          // ========================
@@ -163,17 +253,17 @@ public class GameHandler : MonoBehaviour {
             // If new battle not rendered already
             if(!existBattle_IDList.Contains(battle.id)) {
                int existBattleCount = existBattle_IDList.Count;
-               float JoinBtn_PosY = -firstBattleOffsetY -battleOffsetY *existBattleCount;
+               float joinBtn_PosY = -firstBattleOffsetY -battleOffsetY *existBattleCount;
 
-               GameObject JoinBtn = Instantiate(JoinBtnPrefab, new Vector3(0, JoinBtn_PosY), Quaternion.identity);
-               JoinBtn.transform.SetParent(ScrollContent, false);
+               GameObject joinBtn = Instantiate(joinBtnPrefab, new Vector3(0, joinBtn_PosY), Quaternion.identity);
+               joinBtn.transform.SetParent(scrollContent, false);
 
-               JoinBtn.transform.Find("BattleID").gameObject.GetComponent<TMP_Text>().text = battle.id;
-               JoinBtn.transform.Find("BattleName").gameObject.GetComponent<TMP_Text>().text = battle.name;
+               joinBtn.transform.Find("BattleID").gameObject.GetComponent<TMP_Text>().text = battle.id;
+               joinBtn.transform.Find("BattleName").gameObject.GetComponent<TMP_Text>().text = battle.name;
 
                // Extend ScorllContent height
                if(existBattleCount >= battleCountBeforeScroll) {
-                  ScrollContent.sizeDelta = new Vector2(0, ScrollContent.sizeDelta.y + battleOffsetY);
+                  scrollContent.sizeDelta = new Vector2(0, scrollContent.sizeDelta.y + battleOffsetY);
                }
                existBattle_IDList.Add(battle.id);
             }
@@ -183,33 +273,33 @@ public class GameHandler : MonoBehaviour {
          // ========================
          // Remove old Battles
          // ========================
-         int renderedBattleCount = ScrollContent.childCount;
+         int renderedBattleCount = scrollContent.childCount;
 
          // For all rendered battle
          for(int i = 0; i < renderedBattleCount; i++) {
-            Transform JoinBtn = ScrollContent.GetChild(i);
-            string BattleID = JoinBtn.Find("BattleID").GetComponent<TMP_Text>().text;            
+            Transform joinBtn = scrollContent.GetChild(i);
+            string BattleID = joinBtn.Find("BattleID").GetComponent<TMP_Text>().text;            
             
             // If rendered battle doesn't exist anymore 
             if(!newBattles_IDList.Contains(BattleID)) {
-               Destroy(JoinBtn.gameObject);
+               Destroy(joinBtn.gameObject);
                existBattle_IDList.Remove(BattleID);
 
                // Move up other rendered battle after the destroyed one
                for(int j = 0; j < renderedBattleCount -i; j++) {
-                  RectTransform OtherJoinBtn = ScrollContent.GetChild(j +i).GetComponent<RectTransform>();
-                  float OtherJoinBtn_PosY = OtherJoinBtn.anchoredPosition.y + battleOffsetY;
-                  OtherJoinBtn.anchoredPosition = new Vector2(0, OtherJoinBtn_PosY);
+                  RectTransform OtherjoinBtn = scrollContent.GetChild(j +i).GetComponent<RectTransform>();
+                  float OtherjoinBtn_PosY = OtherjoinBtn.anchoredPosition.y + battleOffsetY;
+                  OtherjoinBtn.anchoredPosition = new Vector2(0, OtherjoinBtn_PosY);
                }
 
                // Shorten ScorllContent height
                int existBattleCount = existBattle_IDList.Count;
                if(existBattleCount >= battleCountBeforeScroll) {
-                  ScrollContent.sizeDelta = new Vector2(0, ScrollContent.sizeDelta.y - battleOffsetY);
+                  scrollContent.sizeDelta = new Vector2(0, scrollContent.sizeDelta.y - battleOffsetY);
                }
             }
          }
-      }
+      });
    }
 
 
@@ -224,18 +314,6 @@ public class GameHandler : MonoBehaviour {
       socket.Disconnect();
    }
 
-   public void BattleEnded() {
-      socket.On("battleEnded", (response) => {
-         
-         Debug.Log(response.GetValue());
-
-         // Display server message
-         // CountDown (3s maybe)
-         // hide battleUI
-         // show main menu
-      });
-   }
-
 
    // ================= Quit Application =================
    public void QuitApplication() {
@@ -247,19 +325,19 @@ public class GameHandler : MonoBehaviour {
    // ====================================================================================
    // Player Methods
    // ====================================================================================
-   public void MoveLeft() {
-      socket.Emit("Left", posX());
-   }
+   // public void MoveLeft() {
+   //    socket.Emit("Left", posX);
+   // }
 
-   public void MoveRight() {
-      socket.Emit("Right", posX());
-   }
+   // public void MoveRight() {
+   //    socket.Emit("Right", posX);
+   // }
 
-   public void AttackStrike() {
-      socket.Emit("AttackStrike", isAttacking());
-   }
+   // public void AttackStrike() {
+   //    socket.Emit("AttackStrike", isAttacking);
+   // }
 
-   public void AttackEstoc() {
-      socket.Emit("AttackEstoc", isAttacking());
-   }
+   // public void AttackEstoc() {
+   //    socket.Emit("AttackEstoc", isAttacking);
+   // }
 }
