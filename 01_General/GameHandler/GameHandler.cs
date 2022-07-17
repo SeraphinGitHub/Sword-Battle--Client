@@ -47,7 +47,8 @@ public class GameHandler : MonoBehaviour {
    private float frameRate;
    private string playerName;
    private string battleName;
-   private int baseEndBattleCD() { return endBattleCD; }
+   private string joinedBattleName;
+   private int baseEndBattleCD;
    private List<string> existBattle_IDList = new List<string>();
    private List<string> newBattles_IDList = new List<string>();
 
@@ -55,14 +56,76 @@ public class GameHandler : MonoBehaviour {
    private float posX;
    private bool isAttacking;
 
+
+   // ====================================================================================
+   // Transfert Data Classes
+   // ====================================================================================
+   [System.Serializable]
+   class CreatedBattleClass {
+
+      public string name;
+      public string battleName;
+
+      public CreatedBattleClass(string name, string battleName) {
+         this.name = name;
+         this.battleName = battleName;
+      }
+   }
+
+   [System.Serializable]
+   class FoundBattleClass {
+
+      public string id;
+      public string name;
+
+      public FoundBattleClass(string id, string name) {
+         this.id = id;
+         this.name = name;
+      }
+   }
+
+   [System.Serializable]
+   class JoinPlayerClass {
+
+      public string battleID;
+      public string name;
+      public string color;
+      public string side;
+
+      public JoinPlayerClass(
+      string battleID,
+      string name,
+      string color,
+      string side) {
+
+         this.battleID = battleID;
+         this.name = name;
+         this.color = color;
+         this.side = side;
+      }
+   }
+   
+   [System.Serializable]
+   class BattleEnd {
+      
+      public bool isHostPlayer;
+      public bool isJoinPlayer;
+
+      public BattleEnd(bool isHostPlayer, bool isJoinPlayer) {
+         this.isHostPlayer = isHostPlayer;
+         this.isJoinPlayer = isJoinPlayer;
+      }
+   }
+
+
    // ====================================================================================
    // Awake() / Start()
    // ====================================================================================
    public void Awake() {
-      // mainMenu.SetActive(true);
-      // findBattleMenu.SetActive(false);
-      // optionsMenu.SetActive(false);
-      // battleUI.SetActive(false);
+      mainMenu.SetActive(true);
+      findBattleMenu.SetActive(false);
+      optionsMenu.SetActive(false);
+      battleUI.SetActive(false);
 
       serverMessageTMP.gameObject.SetActive(false);
       countDownTMP.gameObject.SetActive(false);
@@ -83,10 +146,10 @@ public class GameHandler : MonoBehaviour {
       // ************************  DEBUG  ************************
       socket.On("Get", (data) => Debug.Log(data));
       // ************************  DEBUG  ************************
-socket.Connect();
 
       playerName = playerNameField.text;
       battleName = battleNameField.text;
+      baseEndBattleCD = endBattleCD;
       frameRate = Mathf.Floor(1f/FPS *1000)/1000;
 
       // // Test Var
@@ -101,54 +164,89 @@ socket.Connect();
          
          // ================= Create Battle =================
          if(channel == "battleCreated") {
-            mainMenu.SetActive(false);
-            battleUI.SetActive(true);
+
             battleNameTMP.text = battleName;
             leftPlayerNameTMP.text = playerName;
             rightPlayerNameTMP.text = "";
+
+            SwitchToBattle();
+            // Debug.Log(response.GetValue());
+         }
+
+         // ================= Join Battle =================
+         if(channel == "battleJoined") {
+            var enemyPlayer = response.GetValue<JoinPlayerClass>();
+            
+            battleNameTMP.text = joinedBattleName;
+            leftPlayerNameTMP.text = enemyPlayer.name;
+            rightPlayerNameTMP.text = playerName;
+
+            SwitchToBattle();
+            // Debug.Log(response.GetValue());
+         }
+
+         if(channel == "enemyJoined") {
+            var enemyPlayer = response.GetValue<JoinPlayerClass>();
+
+            rightPlayerNameTMP.text = enemyPlayer.name;
+            serverMessageTMP.gameObject.SetActive(false);
 
             // Debug.Log(response.GetValue());
          }
 
          // ================= Leave Battle =================
          if(channel == "battleEnded") {
-            string serverMessage = response.GetValue().GetRawText();
-            serverMessageTMP.text = serverMessage;
-            serverMessageTMP.gameObject.SetActive(true);
+            var leavingPlayer = response.GetValue<BattleEnd>();
 
-            if(serverMessage.Contains("Host")) {
+            // HostPlayer leave
+            if(leavingPlayer.isHostPlayer) {
+
+               serverMessageTMP.text = "Host player left battle !";              
+               serverMessageTMP.gameObject.SetActive(true);
                countDownTMP.gameObject.SetActive(true);
-               StartCoroutine(CountDown());
-               StartCoroutine(DisplayCountDown());
+               SetInterval("CountDown", 1f);
             }
 
-            else {
-               mainMenu.SetActive(true);
-               battleUI.SetActive(false);
-               serverMessageTMP.gameObject.SetActive(false);
-               countDownTMP.gameObject.SetActive(false);
+            // JoinPlayer leave
+            if(leavingPlayer.isJoinPlayer) {
+
+               serverMessageTMP.text = "Join player left battle !";
+               rightPlayerNameTMP.text = "";
+               serverMessageTMP.gameObject.SetActive(true);
             }
 
             // Debug.Log(response.GetValue());
          }
       });
-   }   
-
-   IEnumerator DisplayCountDown() {
-      yield return new WaitForSeconds(1);
-      countDownTMP.text = endBattleCD.ToString();
-      endBattleCD--;
-      if(endBattleCD <= 0) endBattleCD = baseEndBattleCD();
    }
 
-   IEnumerator CountDown() {
-      yield return new WaitForSeconds(endBattleCD);
+   private void CountDown() {
+      countDownTMP.text = endBattleCD.ToString();
+      endBattleCD--;
+
+      if(endBattleCD  < 0) {
+         endBattleCD = baseEndBattleCD;
+         if(mainMenu.activeSelf) SwitchToMainMenu();
+         CancelInvoke();
+      }
+   }
+
+   private void SwitchToBattle() {
+      mainMenu.SetActive(false);
+      findBattleMenu.SetActive(false);
+      battleUI.SetActive(true);
+   }
+
+   private void SwitchToMainMenu() {
       mainMenu.SetActive(true);
       battleUI.SetActive(false);
       serverMessageTMP.gameObject.SetActive(false);
       countDownTMP.gameObject.SetActive(false);
    }
 
+   private void SetInterval(string methodName, float refreshRate) {
+      InvokeRepeating(methodName, 0, refreshRate);
+   }
 
    // ====================================================================================
    // Server Sync Methods (Every Fame)
@@ -185,34 +283,10 @@ socket.Connect();
       battleName = battleNameField.text;
    }
 
-
+   
    // ====================================================================================
    // Menu Methods
    // ====================================================================================
-   [System.Serializable]
-   class CreatedBattleClass {
-
-      public string playerName;
-      public string battleName;
-
-      public CreatedBattleClass(string playerName, string battleName) {
-         this.playerName = playerName;
-         this.battleName = battleName;
-      }
-   }
-
-   [System.Serializable]
-   class FoundBattleClass {
-
-      public string id;
-      public string name;
-
-      public FoundBattleClass(string id, string name) {
-         this.id = id;
-         this.name = name;
-      }
-   }
-   
 
    // ================= Create Battle =================
 	public void CreateBattle() {
@@ -230,15 +304,10 @@ socket.Connect();
    // ================= Find Battle =================
    public void FindBattle() {
       SocketIO_Connect();
-      RefreshBattleList("SetBattleList");
+      SetInterval("SetBattleList", 0.7f); // seconds
    }
 
-   public void RefreshBattleList(string methodName) {
-      float refreshRate = 0.7f; // seconds
-      InvokeRepeating(methodName, 0, refreshRate);
-   }
-
-   public void SetBattleList() {
+   private void SetBattleList() {
       socket.OnUnityThread("findBattle", (response) => {
 
          var battlesArray = response.GetValue<FoundBattleClass[]>();
@@ -304,13 +373,24 @@ socket.Connect();
 
 
    // ================= Join Battle =================
-   public void JoinBattle() {
-      socket.Emit("joinBattle", "JoinBattle");
+   public void JoinBattle(string battleID, string battleName) {
+
+      joinedBattleName = battleName;
+
+      JoinPlayerClass joinPlayerClass = new JoinPlayerClass(
+         battleID,
+         playerName,
+         "Red",
+         "Right"
+      );
+
+      socket.Emit("joinBattle", joinPlayerClass);
    }
-   
+
 
    // ================= Leave Battle =================
    public void LeaveBattle() {
+      SwitchToMainMenu();
       socket.Disconnect();
    }
 
