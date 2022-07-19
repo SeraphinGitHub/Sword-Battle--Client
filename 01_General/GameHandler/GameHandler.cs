@@ -13,6 +13,10 @@ public class GameHandler : MonoBehaviour {
    public int endBattleCD = 3; //seconds
    public string serverURL = "http://localhost:3000/";
 
+   [Header("**Attached Prefabs**")]
+   public GameObject playerPrefab;
+   public GameObject joinBtnPrefab;
+
    [Header("**BattleList Options**")]
    public int firstBattleOffsetY = 20;
    public int battleOffsetY = 155;
@@ -20,10 +24,6 @@ public class GameHandler : MonoBehaviour {
 
    [Header("**Attached Transforms**")]
    public RectTransform scrollContent;
-
-   [Header("**Attached Prefabs**")]
-   public GameObject playerPrefab;
-   public GameObject joinBtnPrefab;
 
    [Header("**Attached Canvas**")]
    public GameObject mainMenu;
@@ -51,10 +51,7 @@ public class GameHandler : MonoBehaviour {
    private int baseEndBattleCD;
    private List<string> existBattle_IDList = new List<string>();
    private List<string> newBattles_IDList = new List<string>();
-
-   // Test Var
-   private float posX;
-   private bool isAttacking;
+   private PlayerRandomize playerRandomize;
 
 
    // ====================================================================================
@@ -89,19 +86,22 @@ public class GameHandler : MonoBehaviour {
 
       public string battleID;
       public string name;
-      public string color;
       public string side;
+      public string hair;
+      public string color;
 
       public JoinPlayerClass(
       string battleID,
       string name,
-      string color,
-      string side) {
+      string side,
+      string hair,
+      string color) {
 
          this.battleID = battleID;
          this.name = name;
-         this.color = color;
          this.side = side;
+         this.hair = hair;
+         this.color = color;
       }
    }
    
@@ -121,7 +121,7 @@ public class GameHandler : MonoBehaviour {
    // ====================================================================================
    // Awake() / Start()
    // ====================================================================================
-   public void Awake() {
+   private void Awake() {
       mainMenu.SetActive(true);
       findBattleMenu.SetActive(false);
       optionsMenu.SetActive(false);
@@ -129,9 +129,12 @@ public class GameHandler : MonoBehaviour {
 
       serverMessageTMP.gameObject.SetActive(false);
       countDownTMP.gameObject.SetActive(false);
+
+      playerPrefab.SetActive(false);
+      playerRandomize = playerPrefab.GetComponent<PlayerRandomize>();
    }
 
-   public void Start() {
+   private void Start() {
 
       // Init Socket IO
       socket = new SocketIOUnity(serverURL, new SocketIOOptions {
@@ -143,18 +146,11 @@ public class GameHandler : MonoBehaviour {
       });
       socket.JsonSerializer = new NewtonsoftJsonSerializer();
 
-      // ************************  DEBUG  ************************
-      socket.On("Get", (data) => Debug.Log(data));
-      // ************************  DEBUG  ************************
-
+      // Init Variables
       playerName = playerNameField.text;
       battleName = battleNameField.text;
       baseEndBattleCD = endBattleCD;
       frameRate = Mathf.Floor(1f/FPS *1000)/1000;
-
-      // // Test Var
-      // posX = Mathf.Floor(playerPrefab.transform.position.x *10) /10;
-      // isAttacking = playerPrefab.GetComponent<PlayerAttack>().isAttacking;
 
 
       // ====================================================================================
@@ -164,11 +160,16 @@ public class GameHandler : MonoBehaviour {
          
          // ================= Create Battle =================
          if(channel == "battleCreated") {
-
+            
+            playerPrefab.SetActive(true);
+            playerRandomize.playerUI.SetActive(true);
+            playerRandomize.RunRandomize();
+            
             battleNameTMP.text = battleName;
-            leftPlayerNameTMP.text = playerName;
+            leftPlayerNameTMP.text = "";
             rightPlayerNameTMP.text = "";
 
+            StartCoroutine(SetPlayerName());
             SwitchToBattle();
             // Debug.Log(response.GetValue());
          }
@@ -220,13 +221,20 @@ public class GameHandler : MonoBehaviour {
       });
    }
 
+   IEnumerator SetPlayerName() {
+      yield return new WaitForSeconds(playerRandomize.randomizeDelay);
+      
+      if(playerRandomize.playerSide == "Left") leftPlayerNameTMP.text = playerName;
+      else rightPlayerNameTMP.text = playerName;
+   }
+
    private void CountDown() {
       countDownTMP.text = endBattleCD.ToString();
       endBattleCD--;
 
       if(endBattleCD  < 0) {
          endBattleCD = baseEndBattleCD;
-         if(mainMenu.activeSelf) SwitchToMainMenu();
+         if(!mainMenu.activeSelf) SwitchToMainMenu();
          CancelInvoke();
       }
    }
@@ -244,9 +252,6 @@ public class GameHandler : MonoBehaviour {
       countDownTMP.gameObject.SetActive(false);
    }
 
-   private void SetInterval(string methodName, float refreshRate) {
-      InvokeRepeating(methodName, 0, refreshRate);
-   }
 
    // ====================================================================================
    // Server Sync Methods (Every Fame)
@@ -259,6 +264,10 @@ public class GameHandler : MonoBehaviour {
       CancelInvoke();
    }
 
+   private void SetInterval(string methodName, float refreshRate) {
+      InvokeRepeating(methodName, 0, refreshRate);
+   }
+   
 
    // ====================================================================================
    // Socket IO Connection
@@ -380,8 +389,9 @@ public class GameHandler : MonoBehaviour {
       JoinPlayerClass joinPlayerClass = new JoinPlayerClass(
          battleID,
          playerName,
-         "Red",
-         "Right"
+         "Right",
+         "Short",
+         "Red"
       );
 
       socket.Emit("joinBattle", joinPlayerClass);
@@ -390,6 +400,7 @@ public class GameHandler : MonoBehaviour {
 
    // ================= Leave Battle =================
    public void LeaveBattle() {
+      playerRandomize.UnsetPlayer();
       SwitchToMainMenu();
       socket.Disconnect();
    }
@@ -413,11 +424,13 @@ public class GameHandler : MonoBehaviour {
    //    socket.Emit("Right", posX);
    // }
 
-   // public void AttackStrike() {
-   //    socket.Emit("AttackStrike", isAttacking);
-   // }
+   public void AttackStrike() {
+      // socket.Emit("AttackStrike", isAttacking);
+      Debug.Log("Attack Strike");
+   }
 
-   // public void AttackEstoc() {
-   //    socket.Emit("AttackEstoc", isAttacking);
-   // }
+   public void AttackEstoc() {
+      // socket.Emit("AttackEstoc", isAttacking);
+      Debug.Log("Attack Estoc");
+   }
 }
