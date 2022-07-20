@@ -14,7 +14,6 @@ public class GameHandler : MonoBehaviour {
    public string serverURL = "http://localhost:3000/";
 
    [Header("**Attached Prefabs**")]
-   public GameObject playerPrefab;
    public GameObject joinBtnPrefab;
 
    [Header("**BattleList Options**")]
@@ -44,14 +43,18 @@ public class GameHandler : MonoBehaviour {
 
    // Private Variables
    private SocketIOUnity socket;
+   private PlayerRandomize playerRandomize;
+   
    private float frameRate;
-   private string playerName;
-   private string battleName;
-   private string joinedBattleName;
    private int baseEndBattleCD;
+
+   private string battleName;
+   private string playerName;
+   private string playerSide;
+   private string joinedBattleName;
+   
    private List<string> existBattle_IDList = new List<string>();
    private List<string> newBattles_IDList = new List<string>();
-   private PlayerRandomize playerRandomize;
 
 
    // ====================================================================================
@@ -60,12 +63,27 @@ public class GameHandler : MonoBehaviour {
    [System.Serializable]
    class CreatedBattleClass {
 
-      public string name;
       public string battleName;
+      public string name;
+      public string side;
+      public string hair;
+      public string hairColor;
+      public string bodyColor;
 
-      public CreatedBattleClass(string name, string battleName) {
-         this.name = name;
+      public CreatedBattleClass(
+      string battleName,
+      string name,
+      string side,
+      string hair,
+      string hairColor,
+      string bodyColor) {
+
          this.battleName = battleName;
+         this.name = name;
+         this.side = side;
+         this.hair = hair;
+         this.hairColor = hairColor;
+         this.bodyColor = bodyColor;
       }
    }
 
@@ -88,20 +106,23 @@ public class GameHandler : MonoBehaviour {
       public string name;
       public string side;
       public string hair;
-      public string color;
+      public string hairColor;
+      public string bodyColor;
 
       public JoinPlayerClass(
       string battleID,
       string name,
       string side,
       string hair,
-      string color) {
+      string hairColor,
+      string bodyColor) {
 
          this.battleID = battleID;
          this.name = name;
          this.side = side;
          this.hair = hair;
-         this.color = color;
+         this.hairColor = hairColor;
+         this.bodyColor = bodyColor;
       }
    }
    
@@ -130,8 +151,7 @@ public class GameHandler : MonoBehaviour {
       serverMessageTMP.gameObject.SetActive(false);
       countDownTMP.gameObject.SetActive(false);
 
-      playerPrefab.SetActive(false);
-      playerRandomize = playerPrefab.GetComponent<PlayerRandomize>();
+      playerRandomize = GetComponent<PlayerRandomize>();
    }
 
    private void Start() {
@@ -160,10 +180,8 @@ public class GameHandler : MonoBehaviour {
          
          // ================= Create Battle =================
          if(channel == "battleCreated") {
-            
-            playerPrefab.SetActive(true);
-            playerRandomize.playerUI.SetActive(true);
-            playerRandomize.RunRandomize();
+            playerRandomize.isBattleOnGoing = true;
+            playerRandomize.InstantiatePlayer();
             
             battleNameTMP.text = battleName;
             leftPlayerNameTMP.text = "";
@@ -175,6 +193,11 @@ public class GameHandler : MonoBehaviour {
          }
 
          // ================= Join Battle =================
+         if(channel == "joinBattleAccepted") {
+            var enemyPlayer = response.GetValue<JoinPlayerClass>();
+            JoinBattle(enemyPlayer);
+         }
+
          if(channel == "battleJoined") {
             var enemyPlayer = response.GetValue<JoinPlayerClass>();
             
@@ -223,9 +246,8 @@ public class GameHandler : MonoBehaviour {
 
    IEnumerator SetPlayerName() {
       yield return new WaitForSeconds(playerRandomize.randomizeDelay);
-      
-      if(playerRandomize.playerSide == "Left") leftPlayerNameTMP.text = playerName;
-      else rightPlayerNameTMP.text = playerName;
+      if(playerSide == "Left") leftPlayerNameTMP.text = playerName;
+      if(playerSide == "Right") rightPlayerNameTMP.text = playerName;
    }
 
    private void CountDown() {
@@ -304,7 +326,22 @@ public class GameHandler : MonoBehaviour {
    }
 
    IEnumerator SetNewBattle() {
-      CreatedBattleClass createdBattle = new CreatedBattleClass(playerName, battleName);
+      playerRandomize.RunRandomize();
+
+      playerSide = playerRandomize.playerPropsList[0];
+      string playerHair = playerRandomize.playerPropsList[1];
+      string playerHairColor = playerRandomize.playerPropsList[2];
+      string playerBodyColor = playerRandomize.playerPropsList[3];
+
+      CreatedBattleClass createdBattle = new CreatedBattleClass(
+         battleName,
+         playerName,
+         playerSide,
+         playerHair,
+         playerHairColor,
+         playerBodyColor
+      );
+      
       yield return new WaitForSeconds(0.2f);
       socket.Emit("createBattle", createdBattle);
    }
@@ -382,25 +419,44 @@ public class GameHandler : MonoBehaviour {
 
 
    // ================= Join Battle =================
-   public void JoinBattle(string battleID, string battleName) {
+   public void JoinBattleRequest(string battleID, string battleName) {
+      // Used in > JoinBattleHandler.cs
 
       joinedBattleName = battleName;
+      socket.Emit("joinBattleRequest", battleID);
+   }
 
-      JoinPlayerClass joinPlayerClass = new JoinPlayerClass(
-         battleID,
-         playerName,
-         "Right",
-         "Short",
-         "Red"
-      );
+   private void JoinBattle(JoinPlayerClass enemyPlayer) {
+      
+      joinedBattleName = battleName;
+      playerRandomize.RunRandomize();
 
-      socket.Emit("joinBattle", joinPlayerClass);
+      if(enemyPlayer.side == playerRandomize.playerPropsList[0]) {
+         // ReRun Randomize ==>While loop probably
+      }
+
+      // playerSide = playerRandomize.playerPropsList[0];
+      // string playerHair = playerRandomize.playerPropsList[1];
+      // string playerHairColor = playerRandomize.playerPropsList[2];
+      // string playerBodyColor = playerRandomize.playerPropsList[3];
+
+      // JoinPlayerClass joinPlayerClass = new JoinPlayerClass(
+      //    battleID,
+      //    playerName,
+      //    playerSide,
+      //    playerHair,
+      //    playerHairColor,
+      //    playerBodyColor
+      // );
+
+      // socket.Emit("joinBattle", joinPlayerClass);
    }
 
 
    // ================= Leave Battle =================
    public void LeaveBattle() {
-      playerRandomize.UnsetPlayer();
+      playerRandomize.UnsetBattleUI();
+      playerRandomize.isBattleOnGoing = false;
       SwitchToMainMenu();
       socket.Disconnect();
    }
