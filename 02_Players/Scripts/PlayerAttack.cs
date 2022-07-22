@@ -11,6 +11,7 @@ public class PlayerAttack : MonoBehaviour {
    private int randomNumber;
    public bool isLocalPlayer = true;
    public bool isAttacking = false;
+   public string attackType = "";
 
    // Start is called before the first frame update
    void Start() {
@@ -40,6 +41,8 @@ public class PlayerAttack : MonoBehaviour {
             
             if(!isAttacking) {
                isAttacking = true;
+               attackType = "strike";
+
                anim.SetTrigger("attackStrikeLeft");
                StartCoroutine(AttackTimeOut());
             }
@@ -53,6 +56,8 @@ public class PlayerAttack : MonoBehaviour {
 
          if(!isAttacking) {
             isAttacking = true;
+            attackType = "estoc";
+
             anim.SetTrigger("attackEstocLeft");
             StartCoroutine(AttackTimeOut());
          }
@@ -62,6 +67,7 @@ public class PlayerAttack : MonoBehaviour {
    IEnumerator AttackTimeOut() {
       yield return new WaitForSeconds(0.35f);
       isAttacking = false;
+      attackType = "";
       anim.SetTrigger("idleLeft");
    }
 }

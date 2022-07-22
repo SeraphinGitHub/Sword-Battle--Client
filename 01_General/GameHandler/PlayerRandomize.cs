@@ -15,7 +15,6 @@ public class PlayerRandomize : MonoBehaviour {
       new Color32(0, 200, 225, 255),
       new Color32(30, 220, 0, 255),
       new Color32(255, 241, 54, 255),
-      new Color32(255, 150, 0, 255),
       new Color32(255, 0, 0, 255),
       new Color32(170, 0, 255, 255),
    };
@@ -24,7 +23,6 @@ public class PlayerRandomize : MonoBehaviour {
    public Color[] tabardColorsArray = {
       new Color32(0, 120, 255, 255),
       new Color32(23, 171, 0, 255),
-      new Color32(255, 200, 0, 255),
       new Color32(255, 120, 0, 255),
       new Color32(220, 0, 0, 255),
       new Color32(135, 0, 202, 255),
@@ -32,10 +30,12 @@ public class PlayerRandomize : MonoBehaviour {
 
 
    // Public Hidden Variables
-   [HideInInspector] public bool isLocalPlayer;
    [HideInInspector] public string playerSide;
    [HideInInspector] public List<string> playerPropsList;
-   [HideInInspector] public List<GameObject> playersList = new List<GameObject>();
+
+   [HideInInspector] public GameObject hostPlayer;
+   [HideInInspector] public GameObject joinPlayer;
+   [HideInInspector] public GameObject localPlayer;
 
 
    // Private Variables
@@ -55,7 +55,6 @@ public class PlayerRandomize : MonoBehaviour {
       "Blue",
       "Green",
       "Yellow",
-      "Orange",
       "Red",
       "Violet",
    };
@@ -72,9 +71,6 @@ public class PlayerRandomize : MonoBehaviour {
    private Animator rightSwordAnim;
    // **********************************
 
-   private GameObject newPlayer;
-   private GameObject getGameObj(string name) { return newPlayer.transform.Find(name).gameObject; }
-
    private GameObject[] spritesArray;
    private GameObject[] leftHeadArray;
    private GameObject[] leftHairStyleArray;
@@ -82,63 +78,67 @@ public class PlayerRandomize : MonoBehaviour {
    private GameObject[] rightHairStyleArray;
    private GameObject[] tabardArray;
 
-
+   
    // ====================================================================================
    // Methods
    // ====================================================================================
-   private void SetSpritesArrays() {
+   private GameObject getGameObj(GameObject player, string name) {
+      return player.transform.Find(name).gameObject;
+   }
+
+   private void SetSpritesArrays(GameObject player) {
 
       // Player Side
       spritesArray = new GameObject[] {
-         getGameObj("Sprites_LeftPlayer"),
-         getGameObj("Sprites_RightPlayer"),
+         getGameObj(player, "Sprites_LeftPlayer"),
+         getGameObj(player, "Sprites_RightPlayer"),
       };
 
       // Left Player Head
       leftHeadArray = new GameObject[] {
-         getGameObj("Sprites_LeftPlayer/Head/Face_Short_Hair"),
-         getGameObj("Sprites_LeftPlayer/Head/Face_Long_Hair"),
+         getGameObj(player, "Sprites_LeftPlayer/Head/Face_Short_Hair"),
+         getGameObj(player, "Sprites_LeftPlayer/Head/Face_Long_Hair"),
       };
       
       // Left Player Hair
       leftHairStyleArray = new GameObject[] {
-         getGameObj("Sprites_LeftPlayer/Head/Face_Short_Hair/Short_Hair"),
-         getGameObj("Sprites_LeftPlayer/Head/Face_Long_Hair/Long_Hair"),
+         getGameObj(player, "Sprites_LeftPlayer/Head/Face_Short_Hair/Short_Hair"),
+         getGameObj(player, "Sprites_LeftPlayer/Head/Face_Long_Hair/Long_Hair"),
       };
       
       // Right Player Head
       rightHeadArray = new GameObject[] {
-         getGameObj("Sprites_RightPlayer/Head/Face_Short_Hair"),
-         getGameObj("Sprites_RightPlayer/Head/Face_Long_Hair"),
+         getGameObj(player, "Sprites_RightPlayer/Head/Face_Short_Hair"),
+         getGameObj(player, "Sprites_RightPlayer/Head/Face_Long_Hair"),
       };
       
       // Right Player Head
       rightHairStyleArray = new GameObject[] {
-         getGameObj("Sprites_RightPlayer/Head/Face_Short_Hair/Short_Hair"),
-         getGameObj("Sprites_RightPlayer/Head/Face_Long_Hair/Long_Hair"),
+         getGameObj(player, "Sprites_RightPlayer/Head/Face_Short_Hair/Short_Hair"),
+         getGameObj(player, "Sprites_RightPlayer/Head/Face_Long_Hair/Long_Hair"),
       };
 
       // Player Tabard
       tabardArray = new GameObject[] {
-         getGameObj("Sprites_LeftPlayer/Body/Tabard"),
-         getGameObj("Sprites_RightPlayer/Body/Tabard"),
+         getGameObj(player, "Sprites_LeftPlayer/Body/Tabard"),
+         getGameObj(player, "Sprites_RightPlayer/Body/Tabard"),
       };
    }
 
-   public void RemoveRandomizeProps(List<string> hostPropsList) {
+   public void RemoveRandomizeProps(List<string> propsList) {
 
       // Remove hostPlayer props to avoid same props for joinPlayer
       foreach(string side in sideArray) {
-         if(side != hostPropsList[0]) sideList.Add(side);
+         if(side != propsList[0]) sideList.Add(side);
       }
 
       foreach(string hair in hairStyleArray) {
-         if(hair != hostPropsList[1]) hairStyleList.Add(hair);
+         if(hair != propsList[1]) hairStyleList.Add(hair);
       }
 
       foreach(string color in colorArray) {
-         if(color != hostPropsList[2]) hairColorList.Add(color);
-         if(color != hostPropsList[3]) tabardColorList.Add(color);
+         if(color != propsList[2]) hairColorList.Add(color);
+         if(color != propsList[3]) tabardColorList.Add(color);
       }
    }
 
@@ -194,12 +194,18 @@ public class PlayerRandomize : MonoBehaviour {
       };
    }
 
-   public void InstantiatePlayer (List<string> propsList) {
-      
-      newPlayer = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
-      getGameObj("Player_UI").SetActive(false);
+   public void InstantiatePlayer (List<string> propsList, string playerStatus) {
 
-      SetSpritesArrays();
+      if(!hostPlayer) hostPlayer = InitPlayer(propsList, playerStatus);
+      else joinPlayer = InitPlayer(propsList, playerStatus);
+   }
+
+   private GameObject InitPlayer(List<string> propsList, string playerStatus) {
+      
+      GameObject playerToInit = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
+      getGameObj(playerToInit, "Player_UI").SetActive(false);
+      SetSpritesArrays(playerToInit);
+
       UnsetPlayer();
       
       // Set player side
@@ -237,13 +243,17 @@ public class PlayerRandomize : MonoBehaviour {
          }
       }
 
-      newPlayer.transform.position = new Vector3(posX *sidePos, posY, 0);
-      playersList.Add(newPlayer);
+      playerToInit.transform.position = new Vector3(posX *sidePos, posY, 0);
+      
+      if(playerStatus == "isLocalPlayer") {
+         getGameObj(playerToInit, "Player_UI").SetActive(true);
+         localPlayer = playerToInit;
+      }
 
-      if(isLocalPlayer) getGameObj("Player_UI").SetActive(true);
+      return playerToInit;
    }
 
-   public void UnsetPlayer() {
+   private void UnsetPlayer() {
 
       // Hide Player Sprites
       for(int i_Side = 0; i_Side < sideArray.Length; i_Side++) {
@@ -257,35 +267,12 @@ public class PlayerRandomize : MonoBehaviour {
       }
    }
 
-   public void DestroyOnePlayer(string playerToDestroy) {
-
-      if(playersList.Count != 0) {
-
-         if(playerToDestroy == "hostPlayer") {
-            Destroy(playersList[0]);
-            playersList.Remove(playersList[0]);
-         }
-
-         if(playerToDestroy == "joinPlayer") {
-            
-            if(playersList.Count == 1) {
-               Destroy(playersList[0]);
-               playersList.Remove(playersList[0]);
-            }
-
-            if(playersList.Count == 2) {
-               Destroy(playersList[1]);
-               playersList.Remove(playersList[1]);
-            }
-         }
-      }
-   }
-
    public void DestroyAllPlayers() {
 
-      if(playersList.Count != 0) {
-         foreach(var player in playersList) Destroy(player);
-         playersList.Clear();
+      if(hostPlayer && joinPlayer) {
+         Destroy(hostPlayer);
+         Destroy(joinPlayer);
       }
    }
+
 }
