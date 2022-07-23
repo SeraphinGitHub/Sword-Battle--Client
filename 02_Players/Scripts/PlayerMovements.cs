@@ -7,16 +7,15 @@ public class PlayerMovements : MonoBehaviour {
 	[Header("MoveSpeed")]
 	public float forwardSpeed = 8f;
 	public float backwardSpeed = 4f;
-	public bool isLocalPlayer = true;
-	public bool isMovingLeft;
-	public bool isMovingRight;
 
 	// Private variables
 	private float moveSpeed;
+	private string playerSide;
+	private GameObject gameHandler;
+	
 	private Animator playerAnim;
 	private Rigidbody2D rb;
 	private Vector3 movement;
-	private int randTeam = 1; // Temporary set to 1, otherwise no value;
 
 
 	// ====================================================================================
@@ -26,18 +25,11 @@ public class PlayerMovements : MonoBehaviour {
 		playerAnim = GetComponent<Animator>();
 		rb = GetComponent<Rigidbody2D>();
 				
-		if(randTeam <= 1 ) {
-			playerAnim.SetBool("isPlayer_Left", true);
-		}
+		gameHandler = GameObject.Find("_GameHandler");
+		playerSide = gameHandler.GetComponent<GameHandler>().playerSide;
 
-		if(randTeam > 1 ) {
-			playerAnim.SetBool("isPlayer_Right", true);
-		}
-		
-		if(isLocalPlayer) {
-			isMovingLeft = false;
-			isMovingRight = false;
-		}
+		if(playerSide == "Left") playerAnim.SetBool("isPlayer_Left", true);
+		if(playerSide == "Right") playerAnim.SetBool("isPlayer_Right", true);
 	}
 
 
@@ -50,69 +42,28 @@ public class PlayerMovements : MonoBehaviour {
 	
 
 	// =========================================================================================================
-	// Move Left
+	// Public Methods
 	// =========================================================================================================
-	public void LeftON() {
-		if(isLocalPlayer) {
+	public void MoveLeft() {
+		movement = new Vector3(-1f, 0);
 
-			// Player is on Left Side
-			if(randTeam <= 1 ) {
-				isMovingLeft = true;
-
-				moveSpeed = backwardSpeed;
-				movement = new Vector3( -1f, 0);
-			}
-
-			// Player is on Right Side
-			if(randTeam > 1 ) {
-				isMovingLeft = true;
-				
-				moveSpeed = forwardSpeed;
-				movement = new Vector3( -1f, 0);
-			}
-		}
-	}
-	
-	// On Move Left Button Exit
-	public void LeftOFF() {
-
-		if(isLocalPlayer) {
-			isMovingLeft = false;
-			movement = new Vector3( 0, 0);
-		}
+		if(playerSide == "Left") moveSpeed = backwardSpeed;
+		if(playerSide == "Right") moveSpeed = forwardSpeed;
 	}
 
+	public void MoveRight() {
+		movement = new Vector3(1f, 0);
+		
+		playerAnim.SetFloat("walk", 1f);
+		// playerAnim.SetBool("moveRight", true);
 
-	// =========================================================================================================
-	// Move Right
-	// =========================================================================================================
-	public void RightON() {
-		if(isLocalPlayer) {
-
-			// Player is on Left Side
-			if(randTeam <= 1 ) {
-				isMovingRight = true;
-
-				moveSpeed = forwardSpeed;
-				movement = new Vector3( 1f, 0);
-			}
-
-			// Player is on Right Side
-			if(randTeam > 1 ) {
-				isMovingRight = true;
-				
-				moveSpeed = backwardSpeed;
-				movement = new Vector3( 1f, 0);
-			}
-		}
+		if(playerSide == "Left") moveSpeed = forwardSpeed;
+		if(playerSide == "Right") moveSpeed = backwardSpeed;
 	}
-	
-	// On Move Right Button Exit
-	public void RightOFF() {
 
-		if(isLocalPlayer) {
-			isMovingRight = false;
-			movement = new Vector3( 0, 0);
-		}
+	public void StopMove() {
+
+		playerAnim.SetFloat("walk", 0);
+		movement = new Vector3(0, 0);
 	}
 }

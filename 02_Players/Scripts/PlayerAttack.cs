@@ -4,70 +4,65 @@ using UnityEngine;
 
 public class PlayerAttack : MonoBehaviour {
 
-   private Animator anim;
-   private bool isMovingRight;
-   private bool isMovingLeft;
+   // Public Variables
+   public float attackAnimDelay = 0.35f;
+   
+   
+   // Public Hidden Variables
+   [HideInInspector] public bool isAttacking = false;
+   [HideInInspector] public string attackType = "";
 
-   private int randomNumber;
-   public bool isLocalPlayer = true;
-   public bool isAttacking = false;
-   public string attackType = "";
 
-   // Start is called before the first frame update
-   void Start() {
-      anim = GetComponent<Animator>();
+   // Private Variables
+   private Animator playerAnim;
+   
+
+   // ====================================================================================
+	// Start
+	// ====================================================================================
+   private void Start() {
+      playerAnim = GetComponent<Animator>();
    }
 	
-	public void SwordStrikeON() {
-		if(isLocalPlayer) {
-         // isMovingRight = GetComponent<PlayerMovements>().isMovingRight;
-         // isMovingLeft = GetComponent<PlayerMovements>().isMovingLeft;
-         
-         // randomNumber = Random.Range(0,3);
 
-         // if(isMovingRight == true && isMovingLeft == false && randomNumber == 2) {
-         //    anim.SetTrigger("attackRight_Estoc");
-         // }
+   // ====================================================================================
+   // Public Methods
+   // ====================================================================================
+	public void AttackStrike() {
+      if(!isAttacking) {
 
-         // if(isMovingLeft == true && isMovingRight == false && randomNumber == 2) {
-         //    anim.SetTrigger("attackLeft_Estoc");
-         // }
+         isAttacking = true;
+         attackType = "strike";
+         playerAnim.SetTrigger("attackStrikeLeft");
 
-         // if(isMovingRight == true && isMovingLeft == false && randomNumber == 0 || isMovingRight == true && isMovingLeft == false && randomNumber == 1) {
-         //    anim.SetTrigger("attackRight");
-         // }
-
-         // if(isMovingLeft == true && isMovingRight == false && randomNumber == 0 || isMovingLeft == true && isMovingRight == false && randomNumber == 1) {
-            
-            if(!isAttacking) {
-               isAttacking = true;
-               attackType = "strike";
-
-               anim.SetTrigger("attackStrikeLeft");
-               StartCoroutine(AttackTimeOut());
-            }
-            
-         // }
+         StartCoroutine(AttackTimeOut());
       }
 	}
 
-   public void SwordEstocON() {
-		if(isLocalPlayer) {
+   public void AttackEstoc() {
+      if(!isAttacking) {
 
-         if(!isAttacking) {
-            isAttacking = true;
-            attackType = "estoc";
+         isAttacking = true;
+         attackType = "estoc";
 
-            anim.SetTrigger("attackEstocLeft");
-            StartCoroutine(AttackTimeOut());
-         }
+		   playerAnim.SetFloat("attack", 1f);
+         // playerAnim.SetTrigger("attackEstocLeft");
+
+         StartCoroutine(AttackTimeOut());
       }
 	}
 
+
+   // ====================================================================================
+   // Coroutines
+   // ====================================================================================
    IEnumerator AttackTimeOut() {
-      yield return new WaitForSeconds(0.35f);
+      yield return new WaitForSeconds(attackAnimDelay);
+
       isAttacking = false;
       attackType = "";
-      anim.SetTrigger("idleLeft");
+      playerAnim.SetFloat("attack", 0);
+
+      playerAnim.SetTrigger("idleLeft");
    }
 }

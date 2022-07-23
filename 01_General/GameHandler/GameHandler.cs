@@ -46,6 +46,9 @@ public class GameHandler : MonoBehaviour {
 
    // Hidden Public Variables
    [HideInInspector] public SocketIOUnity socket;
+   [HideInInspector] public List<string> playerProps;
+   [HideInInspector] public List<string> enemyProps;
+   [HideInInspector] public string playerSide;
 
 
    // Private Variables
@@ -57,12 +60,10 @@ public class GameHandler : MonoBehaviour {
    private string joinedBattleName;
    private string playerName;
    private string enemyName;
-   private string playerSide;
    private string enemySide;
    
    private List<string> existBattle_IDList = new List<string>();
    private List<string> newBattles_IDList = new List<string>();
-   private List<string> enemyPropsList = new List<string>();
 
    private PlayerRandomize playerRandomize;
    private PlayerAttack playerAttack;
@@ -120,41 +121,30 @@ public class GameHandler : MonoBehaviour {
    } 
    
    [System.Serializable]
-   class BattleEnd {
+   class LeavingPlayerClass {
       
       public bool isHostPlayer;
       public bool isJoinPlayer;
 
-      public BattleEnd(bool isHostPlayer, bool isJoinPlayer) {
+      public LeavingPlayerClass(bool isHostPlayer, bool isJoinPlayer) {
          this.isHostPlayer = isHostPlayer;
          this.isJoinPlayer = isJoinPlayer;
       }
    }
 
-   // Receive SyncPack
+   // Server SyncPack
    [System.Serializable]
-   class ReceiveSyncPackClass {
-      
-      public string data;
-
-      public ReceiveSyncPackClass(string data) {
-         this.data = data;
-      }
-   }
-
-   // Send SyncPack
-   [System.Serializable]
-   class SendSyncPackClass {
+   class SyncPackClass {
       
       public float position;
       public bool isAttacking;
       public string attackType;
 
-      public SendSyncPackClass(
+      public SyncPackClass(
       float position,
       bool isAttacking,
       string attackType) {
-      
+
          this.position = position;
          this.isAttacking = isAttacking;
          this.attackType = attackType;
@@ -204,148 +194,130 @@ public class GameHandler : MonoBehaviour {
          
          // Create Battle
          if(channel == "battleCreated") {
-            StartCoroutine(InitBattle(createdBattleName));
-
-            // Debug.Log(response.GetValue());
+            StartCoroutine(BattleCreated(createdBattleName));
          }
 
          // Join Battle
          if(channel == "joinBattleAccepted") {
             var enemyPlayer = response.GetValue<PlayerClass>();
-            JoinBattle(enemyPlayer);
-            // Debug.Log(response.GetValue());
+            JoinBattleAccepted(enemyPlayer);
          }
 
          if(channel == "battleJoined") {
             isBattleOnGoing = true;
-            StartCoroutine(InitBattle(joinedBattleName));
-
-            // Debug.Log(response.GetValue());
+            StartCoroutine(BattleCreated(joinedBattleName));
          }
 
          if(channel == "enemyJoined") {
             var enemyPlayer = response.GetValue<PlayerClass>();
-
-            serverMessageTMP.gameObject.SetActive(false);
             StartCoroutine(InitEnemyPlayer(enemyPlayer));
-
-            // Debug.Log(response.GetValue());
          }
 
          // Leave Battle
          if(channel == "battleEnded") {
-            var leavingPlayer = response.GetValue<BattleEnd>();            
-
-            if(leavingPlayer.isHostPlayer) {
-
-               isBattleOnGoing = false;
-               Destroy(playerRandomize.hostPlayer);
-               enemyPropsList.Clear();
-
-               serverMessageTMP.text = "Host player left battle !";              
-               serverMessageTMP.gameObject.SetActive(true);
-               countDownTMP.gameObject.SetActive(true);
-               
-               SetInterval("CountDown", 1f);
-            }
-
-            if(leavingPlayer.isJoinPlayer) {
-               
-               Destroy(playerRandomize.joinPlayer);
-               serverMessageTMP.text = "Join player left battle !";
-               BaseSetName(enemySide, "");
-               serverMessageTMP.gameObject.SetActive(true);
-            }
-
-            // Debug.Log(response.GetValue());
+            var leavingPlayer = response.GetValue<LeavingPlayerClass>();
+            BattleEnded(leavingPlayer);
          }
 
 
          // **************
-         if(channel == "Get_Position") {
-            float posX = float.Parse(response.GetValue<ReceiveSyncPackClass>().data);
-            Transform enemyTransform = playerRandomize.hostPlayer.transform;
-            enemyTransform.position = new Vector3(posX, enemyTransform.position.y, 0);
+         if(channel == "ReceiveServerSync") {
+            var SyncPackClass = response.GetValue<SyncPackClass>();
+
+            if(playerRandomize.enemyPlayer) {
+               Transform enemyTransform = playerRandomize.enemyPlayer.transform;
+               enemyTransform.position = new Vector3(SyncPackClass.position, enemyTransform.position.y, 0);
+            }
          }
          // **************
       });
    }
-
+   
 
    // ====================================================================================
-   // Server Sync Methods
+   // Public Methods
    // ====================================================================================
-   public void StartSync(string methodName) {
-      InvokeRepeating(methodName, 0, frameRate);
+   public void SocketIO_Connect() {
+      socket.Connect();
    }
 
-   public void ServerSync() {
-
-      float posX = Mathf.Floor(playerRandomize.localPlayer.transform.position.x *10) /10;
-
-      SendSyncPackClass syncPack = new SendSyncPackClass(
-         posX,
-         playerAttack.isAttacking,
-         playerAttack.attackType
-      );
-
-      socket.Emit("ServerSync", syncPack);
+   public void SocketIO_Disconnect() {
+      socket.Disconnect();
    }
 
+   public void UpdatePlayerName() {
+      playerName = playerNameField.text;
+   }
 
-   // ====================================================================================
-   // Socket Listening Methods
-   // ====================================================================================
-   IEnumerator InitBattle(string battleName) {
+   public void UpdateBattleName() {
+      createdBattleName = battleNameField.text;
+   }
 
-      leftPlayerNameTMP.text = "";
-      rightPlayerNameTMP.text = "";
-      battleNameTMP.text = createdBattleName;
-      SwitchToBattle();
+   public void CreateBattle() {
+      if(!isBattleOnGoing) {
 
-      yield return new WaitForSeconds(randomizeDelay);
+         isBattleOnGoing = true;
+         playerProps = playerRandomize.RunRandomize(new List<string>());
+         playerSide = playerProps[0];
 
-      if(isBattleOnGoing) {
-         BaseSetName(playerSide, playerName);
+         // Set hostPlayer
+         PlayerClass hostPlayer = new PlayerClass(
+            playerName,
+            playerProps[0],
+            playerProps[1],
+            playerProps[2],
+            playerProps[3]
+         );
 
-         // If hostPlayer already exists
-         if(playerRandomize.hostPlayer) {
+         // Set battle
+         CreateBattleClass newBattle = new CreateBattleClass(
+            createdBattleName,
+            hostPlayer
+         );
 
-            string enemySide = enemyPropsList[0];
-            BaseSetName(enemySide, enemyName);
-            playerRandomize.InstantiatePlayer(enemyPropsList, "");
-         }
-
-         // Init LocalPlayer
-         playerRandomize.InstantiatePlayer(playerRandomize.playerPropsList, "isLocalPlayer");
-         playerAttack = playerRandomize.localPlayer.GetComponent<PlayerAttack>();
-
-         // Start Server Sync
-         StartSync("ServerSync");
+         // Await for Socket.io to be connected
+         StartCoroutine(EmitNewBattle(newBattle));
       }
-      else yield break;
    }
 
-   IEnumerator InitEnemyPlayer(PlayerClass enemyPlayer) {
+   public void FindBattle() {
+      SocketIO_Connect();
+      SetInterval("SetBattleList", 0.7f); // seconds
+   }
 
-      List<string> joinPropsList = new List<string>() {
-         enemyPlayer.side,
-         enemyPlayer.hairStyle,
-         enemyPlayer.hairColor,
-         enemyPlayer.tabardColor,
-      };
+   public void JoinBattleRequest(string battleID, string battleName) {
+      // Used in > JoinBattleHandler.cs
 
-      yield return new WaitForSeconds(randomizeDelay);
+      joinedBattleName = battleName;
+      socket.Emit("joinBattleRequest", battleID);
+   }
+
+   public void LeaveBattle() {
+
+      isBattleOnGoing = false;
+      playerRandomize.DestroyAllPlayers();
+      enemyProps.Clear();
       
-      playerRandomize.InstantiatePlayer(joinPropsList, "");
-
-      enemySide = enemyPlayer.side;
-      BaseSetName(enemySide, enemyPlayer.name);
+      SwitchToMainMenu();
+      socket.Disconnect();
    }
 
+   public void QuitApplication() {
+      SocketIO_Disconnect();
+      Application.Quit();
+   }
+
+
+   // ====================================================================================
+   // Private Methods
+   // ====================================================================================
    private void BaseSetName(string side, string name) {
       if(side == "Left") leftPlayerNameTMP.text = name;
       if(side == "Right") rightPlayerNameTMP.text = name;
+   }
+
+   private void SetInterval(string methodName, float refreshRate) {
+      InvokeRepeating(methodName, 0, refreshRate);
    }
 
    private void CountDown() {
@@ -354,7 +326,7 @@ public class GameHandler : MonoBehaviour {
 
       if(endBattleCD  < 0) {
          endBattleCD = baseEndBattleCD;
-         Destroy(playerRandomize.joinPlayer);
+         Destroy(playerRandomize.localPlayer);
          
          if(!mainMenu.activeSelf) SwitchToMainMenu();
          CancelInvoke();
@@ -373,82 +345,6 @@ public class GameHandler : MonoBehaviour {
       battleUI.SetActive(false);
       serverMessageTMP.gameObject.SetActive(false);
       countDownTMP.gameObject.SetActive(false);
-   }
-
-
-   // ====================================================================================
-   // General Methods
-   // ====================================================================================
-   private void SetInterval(string methodName, float refreshRate) {
-      InvokeRepeating(methodName, 0, refreshRate);
-   }
-
-   // Socket IO Connection
-   public void SocketIO_Connect() {
-      socket.Connect();
-   }
-
-   public void SocketIO_Disconnect() {
-      socket.Disconnect();
-   }
-
-   // Update inputFields OnChange()
-   public void UpdatePlayerName() {
-      playerName = playerNameField.text;
-   }
-
-   public void UpdateBattleName() {
-      createdBattleName = battleNameField.text;
-   }
-
-
-   // ====================================================================================
-   // Menu Methods
-   // ====================================================================================
-
-   // Create Battle
-	public void CreateBattle() {
-      if(!isBattleOnGoing) {
-
-         isBattleOnGoing = true;
-         playerRandomize.RunRandomize();
-
-         playerSide = playerRandomize.playerPropsList[0];
-         string playerHair = playerRandomize.playerPropsList[1];
-         string playerHairColor = playerRandomize.playerPropsList[2];
-         string playerTabardColor = playerRandomize.playerPropsList[3];
-
-         // Set hostPlayer
-         PlayerClass hostPlayer = new PlayerClass(
-            playerName,
-            playerSide,
-            playerHair,
-            playerHairColor,
-            playerTabardColor
-         );
-
-         // Set battle
-         CreateBattleClass newBattle = new CreateBattleClass(
-            createdBattleName,
-            hostPlayer
-         );
-
-         // Await for Socket.io to be connected
-         StartCoroutine(EmitNewBattle(newBattle));
-      }
-   }
-
-   IEnumerator EmitNewBattle(CreateBattleClass newBattle) {
-      
-      SocketIO_Connect();
-      yield return new WaitForSeconds(0.2f);
-      socket.Emit("createBattle", newBattle);
-   }
-
-   // Find Battle
-   public void FindBattle() {
-      SocketIO_Connect();
-      SetInterval("SetBattleList", 0.7f); // seconds
    }
 
    private void SetBattleList() {
@@ -515,59 +411,143 @@ public class GameHandler : MonoBehaviour {
       });
    }
 
-   // Join Battle
-   public void JoinBattleRequest(string battleID, string battleName) {
-      // Used in > JoinBattleHandler.cs
-
-      joinedBattleName = battleName;
-      socket.Emit("joinBattleRequest", battleID);
-   }
-
-   private void JoinBattle(PlayerClass enemyPlayer) {
+   private void JoinBattleAccepted(PlayerClass enemyPlayer) {
       
       // Set enemy player (Host player)
       enemyName = enemyPlayer.name;
-      enemyPropsList.Add(enemyPlayer.side);
-      enemyPropsList.Add(enemyPlayer.hairStyle);
-      enemyPropsList.Add(enemyPlayer.hairColor);
-      enemyPropsList.Add(enemyPlayer.tabardColor);
+
+      enemyProps = new List<string>() {
+         enemyPlayer.side,
+         enemyPlayer.hairStyle,
+         enemyPlayer.hairColor,
+         enemyPlayer.tabardColor
+      };
       
       // Randomize joinPlayer, out of hostPlayer props
-      playerRandomize.RemoveRandomizeProps(enemyPropsList);
-      playerRandomize.RunRandomize();
-
-      playerSide = playerRandomize.playerPropsList[0];
-      string playerHairStyle = playerRandomize.playerPropsList[1];
-      string playerHairColor = playerRandomize.playerPropsList[2];
-      string playerTabardColor = playerRandomize.playerPropsList[3];
+      playerProps = playerRandomize.RunRandomize(enemyProps);
+      playerSide = playerProps[0];
 
       // Set joinPlayer
       PlayerClass joinPlayerProps = new PlayerClass(
          playerName,
-         playerSide,
-         playerHairStyle,
-         playerHairColor,
-         playerTabardColor
+         playerProps[0],
+         playerProps[1],
+         playerProps[2],
+         playerProps[3]
       );
 
+      // On received event ("battleJoined") ==> Coroutine BattleCreated();
       socket.Emit("joinBattle", joinPlayerProps);
    }
 
-   // Leave Battle
-   public void LeaveBattle() {
-      
-      isBattleOnGoing = false;
-      playerRandomize.DestroyAllPlayers();
-      enemyPropsList.Clear();
-      
-      SwitchToMainMenu();
-      socket.Disconnect();
+   private void BattleEnded(LeavingPlayerClass leavingPlayer) {
+
+      if(leavingPlayer.isHostPlayer) {
+
+         Destroy(playerRandomize.enemyPlayer);
+
+         isBattleOnGoing = false;         
+         enemyProps.Clear();
+
+         serverMessageTMP.text = "Host player left battle !";              
+         serverMessageTMP.gameObject.SetActive(true);
+         countDownTMP.gameObject.SetActive(true);
+         
+         SetInterval("CountDown", 1f);
+      }
+
+      if(leavingPlayer.isJoinPlayer) {
+         
+         Destroy(playerRandomize.enemyPlayer);
+
+         serverMessageTMP.text = "Join player left battle !";
+         BaseSetName(enemySide, "");
+         serverMessageTMP.gameObject.SetActive(true);
+      }
    }
 
-   // Quit Application
-   public void QuitApplication() {
-      SocketIO_Disconnect();
-      Application.Quit();
+
+   // ====================================================================================
+   // Coroutines
+   // ====================================================================================
+   IEnumerator EmitNewBattle(CreateBattleClass newBattle) {
+      
+      SocketIO_Connect();
+      yield return new WaitForSeconds(0.2f);
+      socket.Emit("createBattle", newBattle);
    }
 
+   IEnumerator BattleCreated(string battleName) {
+
+      leftPlayerNameTMP.text = "";
+      rightPlayerNameTMP.text = "";
+      battleNameTMP.text = createdBattleName;
+      SwitchToBattle();
+
+      yield return new WaitForSeconds(randomizeDelay);
+
+      if(isBattleOnGoing) {
+         BaseSetName(playerSide, playerName);
+
+         // If enemy player is set
+         if(enemyProps.Count != 0) {
+            string enemySide = enemyProps[0];
+            BaseSetName(enemySide, enemyName);
+            playerRandomize.InstantiatePlayer(enemyProps, false);
+         }
+
+         // Init LocalPlayer
+         playerRandomize.InstantiatePlayer(playerProps, true);
+         playerAttack = playerRandomize.localPlayer.GetComponent<PlayerAttack>();
+
+         // Start server sync
+         if(playerRandomize.enemyPlayer) StartSync("ServerSync");
+      }
+      else yield break;
+   }
+
+   IEnumerator InitEnemyPlayer(PlayerClass enemyPlayer) {
+
+      List<string> joinPropsList = new List<string>() {
+         enemyPlayer.side,
+         enemyPlayer.hairStyle,
+         enemyPlayer.hairColor,
+         enemyPlayer.tabardColor,
+      };
+      
+      serverMessageTMP.gameObject.SetActive(false);
+      yield return new WaitForSeconds(randomizeDelay);
+      
+      // Instantiate enemy player
+      playerRandomize.InstantiatePlayer(joinPropsList, false);
+      enemySide = enemyPlayer.side;
+      BaseSetName(enemySide, enemyPlayer.name);
+
+      // Start server sync
+      StartSync("ServerSync");
+   }
+
+
+   // ====================================================================================
+   // Server Sync Methods
+   // ====================================================================================
+   public void StartSync(string methodName) {
+      InvokeRepeating(methodName, 0, frameRate);
+   }
+
+   public void ServerSync() {
+
+      if(playerRandomize.localPlayer && playerRandomize.enemyPlayer) {
+
+         float posX = Mathf.Floor(playerRandomize.localPlayer.transform.position.x *10) /10;
+
+         SyncPackClass syncPack = new SyncPackClass(
+            posX,
+            playerAttack.isAttacking,
+            playerAttack.attackType
+         );
+
+         socket.Emit("ServerSync", syncPack);
+      }
+   }
 }

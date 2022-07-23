@@ -29,40 +29,16 @@ public class PlayerRandomize : MonoBehaviour {
    };
 
 
-   // Public Hidden Variables
-   [HideInInspector] public string playerSide;
-   [HideInInspector] public List<string> playerPropsList;
-
-   [HideInInspector] public GameObject hostPlayer;
-   [HideInInspector] public GameObject joinPlayer;
+   // Public Hidden Variables   
    [HideInInspector] public GameObject localPlayer;
+   [HideInInspector] public GameObject enemyPlayer;
 
 
    // Private Variables
-   private string playerHairStyle;
-   private string playerHairColor;
-   private string playerTabardColor;
-
-   private string[] sideArray = new string[] {
-      "Left",
-      "Right",
-   };
-   private string[] hairStyleArray = new string[] {
-      "Short",
-      "Long",
-   };
-   private string[] colorArray = new string[] {
-      "Blue",
-      "Green",
-      "Yellow",
-      "Red",
-      "Violet",
-   };
-   
-   private List<string> sideList = new List<string>();
-   private List<string> hairStyleList = new List<string>();
-   private List<string> hairColorList = new List<string>();
-   private List<string> tabardColorList = new List<string>();
+   private List<string> sideList;
+   private List<string> hairStyleList;
+   private List<string> hairColorList;
+   private List<string> tabardColorList;
 
    private int sidePos;
    
@@ -80,10 +56,102 @@ public class PlayerRandomize : MonoBehaviour {
 
    
    // ====================================================================================
-   // Methods
+   // Public Methods
+   // ====================================================================================
+   public List<string> RunRandomize(List<string> enemyPropsList) {
+      
+      // Set Props List
+      SetPorpsLists();
+
+      // Remove enemyPlayer props to avoid same props for localPlayer
+      if(enemyPropsList.Count != 0) {
+
+         sideList.Remove(enemyPropsList[0]);
+         hairStyleList.Remove(enemyPropsList[1]);
+         hairColorList.Remove(enemyPropsList[2]);
+         tabardColorList.Remove(enemyPropsList[3]);
+      }
+      
+      int randomSide = Random.Range(0, sideList.Count);
+      int randomHead = Random.Range(0, hairStyleList.Count);
+      int randomHairColor = Random.Range(0, hairColorList.Count);
+      int randomTabardColor = Random.Range(0, tabardColorList.Count);
+
+      List<string> randomPropsList = new List<string>() {
+         sideList[randomSide],
+         hairStyleList[randomHead],
+         hairColorList[randomHairColor],
+         tabardColorList[randomTabardColor],
+      };
+
+      // Reset Props List
+      SetPorpsLists();
+
+      return randomPropsList;
+   }
+
+   public void InstantiatePlayer (List<string> propsList, bool isLocalPlayer) {
+
+      GameObject playerInstance = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);;
+      GameObject playerUI = getGameObj(playerInstance, "Player_UI");
+
+      SetSpritesArrays(playerInstance);
+      UnsetPlayer();
+      SetPlayer(propsList);
+      playerInstance.transform.position = new Vector3(posX *sidePos, posY, 0);
+
+      if(isLocalPlayer) {
+         playerUI.SetActive(true);
+         localPlayer = playerInstance;
+      }
+
+      else {
+         playerUI.SetActive(false);
+         enemyPlayer = playerInstance;
+      }
+   }
+
+   public void DestroyAllPlayers() {
+
+      if(localPlayer) Destroy(localPlayer);
+      if(enemyPlayer) Destroy(enemyPlayer);
+   }
+
+
+   // ====================================================================================
+   // Private Methods
    // ====================================================================================
    private GameObject getGameObj(GameObject player, string name) {
       return player.transform.Find(name).gameObject;
+   }
+
+   private void SetPorpsLists() {
+
+      sideList = new List<string>() {
+         "Left",
+         "Right",
+      };
+
+      hairStyleList = new List<string>() {
+         "Short",
+         "Long",
+      };
+
+      hairColorList = new List<string>() {
+         "Blue",
+         "Green",
+         "Yellow",
+         "Red",
+         "Violet",
+      };
+
+      tabardColorList = new List<string>() {
+         "DarkBlue",
+         "DarkGreen",
+         "DarkYellow",
+         "DarkRed",
+         "DarkViolet",
+      };
    }
 
    private void SetSpritesArrays(GameObject player) {
@@ -125,116 +193,35 @@ public class PlayerRandomize : MonoBehaviour {
       };
    }
 
-   public void RemoveRandomizeProps(List<string> propsList) {
-
-      // Remove hostPlayer props to avoid same props for joinPlayer
-      foreach(string side in sideArray) {
-         if(side != propsList[0]) sideList.Add(side);
-      }
-
-      foreach(string hair in hairStyleArray) {
-         if(hair != propsList[1]) hairStyleList.Add(hair);
-      }
-
-      foreach(string color in colorArray) {
-         if(color != propsList[2]) hairColorList.Add(color);
-         if(color != propsList[3]) tabardColorList.Add(color);
-      }
-   }
-
-   private void RandomizeHostPlayer() {
-
-      // Randomize from Arrays
-      int randomSide = Random.Range(0, sideArray.Length);
-      int randomHead = Random.Range(0, hairStyleArray.Length);
-      int randomHairColor = Random.Range(0, colorArray.Length);
-      int randomTabardColor = Random.Range(0, colorArray.Length);
-
-      playerSide = sideArray[randomSide];
-      playerHairStyle = hairStyleArray[randomHead];
-      playerHairColor = colorArray[randomHairColor];
-      playerTabardColor = colorArray[randomTabardColor];
-   }
-
-   private void RandomizeJoinPlayer() {
-
-      // Randomize from Lists
-      int randomSide = Random.Range(0, sideList.Count);
-      int randomHead = Random.Range(0, hairStyleList.Count);
-      int randomHairColor = Random.Range(0, hairColorList.Count);
-      int randomTabardColor = Random.Range(0, tabardColorList.Count);
-
-      playerSide = sideList[randomSide];
-      playerHairStyle = hairStyleList[randomHead];
-      playerHairColor = hairColorList[randomHairColor];
-      playerTabardColor = tabardColorList[randomTabardColor];
-   }
-
-   public void RunRandomize() {
-      
-      if(sideList.Count != 0
-      && hairStyleList.Count != 0
-      && hairColorList.Count != 0
-      && tabardColorList.Count != 0) {
-
-         RandomizeJoinPlayer();
-
-         sideList.Clear();
-         hairStyleList.Clear();
-         hairColorList.Clear();
-         tabardColorList.Clear();
-      }
-      else RandomizeHostPlayer();
-      
-      playerPropsList = new List<string>() {
-         playerSide,
-         playerHairStyle,
-         playerHairColor,
-         playerTabardColor,
-      };
-   }
-
-   public void InstantiatePlayer (List<string> propsList, string playerStatus) {
-
-      if(!hostPlayer) hostPlayer = InitPlayer(propsList, playerStatus);
-      else joinPlayer = InitPlayer(propsList, playerStatus);
-   }
-
-   private GameObject InitPlayer(List<string> propsList, string playerStatus) {
-      
-      GameObject playerToInit = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
-      getGameObj(playerToInit, "Player_UI").SetActive(false);
-      SetSpritesArrays(playerToInit);
-
-      UnsetPlayer();
+   private void SetPlayer(List<string> propsList) {
       
       // Set player side
-      for(int i_Side = 0; i_Side < sideArray.Length; i_Side++) {
-         if(propsList[0] == sideArray[i_Side]) {
+      for(int i_Side = 0; i_Side < sideList.Count; i_Side++) {
+         if(propsList[0] == sideList[i_Side]) {
 
             spritesArray[i_Side].SetActive(true);
             sidePos = 2 *i_Side -1;
 
 
             // Set player hair
-            for(int i_Hair = 0; i_Hair < hairStyleArray.Length; i_Hair++) {
-               if(propsList[1] == hairStyleArray[i_Hair]) {
+            for(int i_Hair = 0; i_Hair < hairStyleList.Count; i_Hair++) {
+               if(propsList[1] == hairStyleList[i_Hair]) {
 
                   leftHeadArray[i_Hair].SetActive(true);
                   rightHeadArray[i_Hair].SetActive(true);
                   
 
                   // Set player hair & tabard color
-                  for(int i_Color = 0; i_Color < colorArray.Length; i_Color++) {
+                  for(int i_Color = 0; i_Color < hairColorList.Count; i_Color++) {
 
                      // Hair color
-                     if(propsList[2] == colorArray[i_Color]) {
+                     if(propsList[2] == hairColorList[i_Color]) {
                         leftHairStyleArray[i_Hair].GetComponent<SpriteRenderer>().color = hairColorsArray[i_Color];
                         rightHairStyleArray[i_Hair].GetComponent<SpriteRenderer>().color = hairColorsArray[i_Color];
                      }
 
                      // Tabard color 
-                     if(propsList[3] == colorArray[i_Color]) {
+                     if(propsList[3] == tabardColorList[i_Color]) {
                         tabardArray[i_Side].GetComponent<SpriteRenderer>().color = tabardColorsArray[i_Color];
                      }
                   }
@@ -242,36 +229,19 @@ public class PlayerRandomize : MonoBehaviour {
             }        
          }
       }
-
-      playerToInit.transform.position = new Vector3(posX *sidePos, posY, 0);
-      
-      if(playerStatus == "isLocalPlayer") {
-         getGameObj(playerToInit, "Player_UI").SetActive(true);
-         localPlayer = playerToInit;
-      }
-
-      return playerToInit;
    }
 
    private void UnsetPlayer() {
 
       // Hide Player Sprites
-      for(int i_Side = 0; i_Side < sideArray.Length; i_Side++) {
+      for(int i_Side = 0; i_Side < sideList.Count; i_Side++) {
          spritesArray[i_Side].SetActive(false);
 
          // Hide Player Head
-         for(int i_Hair = 0; i_Hair < hairStyleArray.Length; i_Hair++) {
+         for(int i_Hair = 0; i_Hair < hairStyleList.Count; i_Hair++) {
             leftHeadArray[i_Hair].SetActive(false);
             rightHeadArray[i_Hair].SetActive(false);
          }        
-      }
-   }
-
-   public void DestroyAllPlayers() {
-
-      if(hostPlayer && joinPlayer) {
-         Destroy(hostPlayer);
-         Destroy(joinPlayer);
       }
    }
 
