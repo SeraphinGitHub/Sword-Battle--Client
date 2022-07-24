@@ -28,8 +28,8 @@ public class PlayerMovements : MonoBehaviour {
 		gameHandler = GameObject.Find("_GameHandler");
 		playerSide = gameHandler.GetComponent<GameHandler>().playerSide;
 
-		if(playerSide == "Left") playerAnim.SetBool("isPlayer_Left", true);
-		if(playerSide == "Right") playerAnim.SetBool("isPlayer_Right", true);
+		// if(playerSide == "Left") playerAnim.SetBool("isPlayer_Left", true);
+		// if(playerSide == "Right") playerAnim.SetBool("isPlayer_Right", true);
 	}
 
 
@@ -54,7 +54,7 @@ public class PlayerMovements : MonoBehaviour {
 	public void MoveRight() {
 		movement = new Vector3(1f, 0);
 		
-		playerAnim.SetFloat("walk", 1f);
+		// playerAnim.SetFloat("walk", 1f);
 		// playerAnim.SetBool("moveRight", true);
 
 		if(playerSide == "Left") moveSpeed = forwardSpeed;
@@ -63,7 +63,7 @@ public class PlayerMovements : MonoBehaviour {
 
 	public void StopMove() {
 
-		playerAnim.SetFloat("walk", 0);
+		// playerAnim.SetFloat("walk", 0);
 		movement = new Vector3(0, 0);
 	}
 }

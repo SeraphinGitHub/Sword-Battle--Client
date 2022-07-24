@@ -5,49 +5,37 @@ using UnityEngine;
 public class PlayerAttack : MonoBehaviour {
 
    // Public Variables
+   [Header("Attack Delay")]
    public float attackAnimDelay = 0.35f;
-   
+      
    
    // Public Hidden Variables
    [HideInInspector] public bool isAttacking = false;
    [HideInInspector] public string attackType = "";
 
-
-   // Private Variables
-   private Animator playerAnim;
    
+   // Private Variables
+	private PlayerAnimators playerAnim;
+	
 
    // ====================================================================================
 	// Start
 	// ====================================================================================
-   private void Start() {
-      playerAnim = GetComponent<Animator>();
-   }
-	
+	private void Start() {
+		playerAnim = GetComponent<PlayerAnimators>();
+	}
+
 
    // ====================================================================================
    // Public Methods
    // ====================================================================================
-	public void AttackStrike() {
+	public void Attack(string type) {
+      
       if(!isAttacking) {
+         playerAnim.SetAnim("attack", "left"+type, "right"+type);
 
          isAttacking = true;
-         attackType = "strike";
-         playerAnim.SetTrigger("attackStrikeLeft");
-
-         StartCoroutine(AttackTimeOut());
-      }
-	}
-
-   public void AttackEstoc() {
-      if(!isAttacking) {
-
-         isAttacking = true;
-         attackType = "estoc";
-
-		   playerAnim.SetFloat("attack", 1f);
-         // playerAnim.SetTrigger("attackEstocLeft");
-
+         attackType = type;
          StartCoroutine(AttackTimeOut());
       }
 	}
@@ -61,8 +49,5 @@ public class PlayerAttack : MonoBehaviour {
 
       isAttacking = false;
       attackType = "";
-      playerAnim.SetFloat("attack", 0);
-
-      playerAnim.SetTrigger("idleLeft");
    }
 }

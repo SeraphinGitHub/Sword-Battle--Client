@@ -35,17 +35,13 @@ public class PlayerRandomize : MonoBehaviour {
 
 
    // Private Variables
+   private int sidePos;
+
    private List<string> sideList;
    private List<string> hairStyleList;
    private List<string> hairColorList;
    private List<string> tabardColorList;
-
-   private int sidePos;
-   
-   // **********************************
-   private Animator leftSwordAnim;
-   private Animator rightSwordAnim;
-   // **********************************
+   private List<string> swordColorList;
 
    private GameObject[] spritesArray;
    private GameObject[] leftHeadArray;
@@ -70,18 +66,21 @@ public class PlayerRandomize : MonoBehaviour {
          hairStyleList.Remove(enemyPropsList[1]);
          hairColorList.Remove(enemyPropsList[2]);
          tabardColorList.Remove(enemyPropsList[3]);
+         swordColorList.Remove(enemyPropsList[4]);
       }
       
       int randomSide = Random.Range(0, sideList.Count);
       int randomHead = Random.Range(0, hairStyleList.Count);
       int randomHairColor = Random.Range(0, hairColorList.Count);
       int randomTabardColor = Random.Range(0, tabardColorList.Count);
+      int randomSwordColor = Random.Range(0, swordColorList.Count);
 
       List<string> randomPropsList = new List<string>() {
          sideList[randomSide],
          hairStyleList[randomHead],
          hairColorList[randomHairColor],
          tabardColorList[randomTabardColor],
+         swordColorList[randomSwordColor],
       };
 
       // Reset Props List
@@ -92,13 +91,19 @@ public class PlayerRandomize : MonoBehaviour {
 
    public void InstantiatePlayer (List<string> propsList, bool isLocalPlayer) {
 
-      GameObject playerInstance = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);;
+      GameObject playerInstance = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
       GameObject playerUI = getGameObj(playerInstance, "Player_UI");
 
       SetSpritesArrays(playerInstance);
       UnsetPlayer();
       SetPlayer(propsList);
       playerInstance.transform.position = new Vector3(posX *sidePos, posY, 0);
+
+      string charaterSide = propsList[0];
+      string swordColor = propsList[4];
+
+      // Set sword color by enemySide/playerSide and swordColor
+      playerInstance.GetComponent<PlayerAnimators>().SetSwordColor(charaterSide, swordColor);
 
       if(isLocalPlayer) {
          playerUI.SetActive(true);
@@ -151,6 +156,12 @@ public class PlayerRandomize : MonoBehaviour {
          "DarkYellow",
          "DarkRed",
          "DarkViolet",
+      };
+
+      swordColorList = new List<string>() {
+         "Green",
+         "Violet",
+         "Red",
       };
    }
 
@@ -226,7 +237,7 @@ public class PlayerRandomize : MonoBehaviour {
                      }
                   }
                }
-            }        
+            }
          }
       }
    }

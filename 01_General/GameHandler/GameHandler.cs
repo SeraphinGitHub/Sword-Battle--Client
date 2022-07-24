@@ -48,7 +48,10 @@ public class GameHandler : MonoBehaviour {
    [HideInInspector] public SocketIOUnity socket;
    [HideInInspector] public List<string> playerProps;
    [HideInInspector] public List<string> enemyProps;
+
    [HideInInspector] public string playerSide;
+   [HideInInspector] public string enemySide;
+   [HideInInspector] public string swordColor;
 
 
    // Private Variables
@@ -60,7 +63,6 @@ public class GameHandler : MonoBehaviour {
    private string joinedBattleName;
    private string playerName;
    private string enemyName;
-   private string enemySide;
    
    private List<string> existBattle_IDList = new List<string>();
    private List<string> newBattles_IDList = new List<string>();
@@ -80,19 +82,22 @@ public class GameHandler : MonoBehaviour {
       public string hairStyle;
       public string hairColor;
       public string tabardColor;
+      public string swordColor;
 
       public PlayerClass(
       string name,
       string side,
       string hairStyle,
       string hairColor,
-      string tabardColor) {
+      string tabardColor,
+      string swordColor) {
 
          this.name = name;
          this.side = side;
          this.hairStyle = hairStyle;
          this.hairColor = hairColor;
          this.tabardColor = tabardColor;
+         this.swordColor = swordColor;
       }
    }
 
@@ -219,17 +224,11 @@ public class GameHandler : MonoBehaviour {
             BattleEnded(leavingPlayer);
          }
 
-
-         // **************
+         // Receive Sync
          if(channel == "ReceiveServerSync") {
-            var SyncPackClass = response.GetValue<SyncPackClass>();
-
-            if(playerRandomize.enemyPlayer) {
-               Transform enemyTransform = playerRandomize.enemyPlayer.transform;
-               enemyTransform.position = new Vector3(SyncPackClass.position, enemyTransform.position.y, 0);
-            }
+            var syncPack = response.GetValue<SyncPackClass>();
+            ReceiveServerSync(syncPack);
          }
-         // **************
       });
    }
    
@@ -259,6 +258,7 @@ public class GameHandler : MonoBehaviour {
          isBattleOnGoing = true;
          playerProps = playerRandomize.RunRandomize(new List<string>());
          playerSide = playerProps[0];
+         swordColor = playerProps[4];
 
          // Set hostPlayer
          PlayerClass hostPlayer = new PlayerClass(
@@ -266,7 +266,8 @@ public class GameHandler : MonoBehaviour {
             playerProps[0],
             playerProps[1],
             playerProps[2],
-            playerProps[3]
+            playerProps[3],
+            playerProps[4]
          );
 
          // Set battle
@@ -420,12 +421,14 @@ public class GameHandler : MonoBehaviour {
          enemyPlayer.side,
          enemyPlayer.hairStyle,
          enemyPlayer.hairColor,
-         enemyPlayer.tabardColor
+         enemyPlayer.tabardColor,
+         enemyPlayer.swordColor
       };
       
       // Randomize joinPlayer, out of hostPlayer props
       playerProps = playerRandomize.RunRandomize(enemyProps);
       playerSide = playerProps[0];
+      swordColor = playerProps[4];
 
       // Set joinPlayer
       PlayerClass joinPlayerProps = new PlayerClass(
@@ -433,7 +436,8 @@ public class GameHandler : MonoBehaviour {
          playerProps[0],
          playerProps[1],
          playerProps[2],
-         playerProps[3]
+         playerProps[3],
+         playerProps[4]
       );
 
       // On received event ("battleJoined") ==> Coroutine BattleCreated();
@@ -513,6 +517,7 @@ public class GameHandler : MonoBehaviour {
          enemyPlayer.hairStyle,
          enemyPlayer.hairColor,
          enemyPlayer.tabardColor,
+         enemyPlayer.swordColor,
       };
       
       serverMessageTMP.gameObject.SetActive(false);
@@ -535,8 +540,8 @@ public class GameHandler : MonoBehaviour {
       InvokeRepeating(methodName, 0, frameRate);
    }
 
+   // Emit Sync
    public void ServerSync() {
-
       if(playerRandomize.localPlayer && playerRandomize.enemyPlayer) {
 
          float posX = Mathf.Floor(playerRandomize.localPlayer.transform.position.x *10) /10;
@@ -549,5 +554,24 @@ public class GameHandler : MonoBehaviour {
 
          socket.Emit("ServerSync", syncPack);
       }
+   }
+
+   // Receive Sync
+   private void ReceiveServerSync(SyncPackClass syncPack) {
+      if(playerRandomize.enemyPlayer) {
+
+         Transform enemyTransform = playerRandomize.enemyPlayer.transform;
+         enemyTransform.position = new Vector3(syncPack.position, enemyTransform.position.y, 0);
+
+         // playerRandomize.enemyPlayer.GetComponent<PlayerAttack>().Attack(syncPack.attackType);
+         StartCoroutine(aze(syncPack));
+      }
+   }
+
+   IEnumerator aze(SyncPackClass syncPack) {
+      yield return new WaitForSeconds(3f);
+
+      playerRandomize.enemyPlayer.GetComponent<PlayerAttack>().Attack(syncPack.attackType);
+      Debug.Log(syncPack.attackType);
    }
 }
