@@ -10,12 +10,12 @@ public class PlayerMovements : MonoBehaviour {
 
 	// Private variables
 	private float moveSpeed;
-	private string playerSide;
-	private GameObject gameHandler;
 	
 	private Animator playerAnim;
 	private Rigidbody2D rb;
 	private Vector3 movement;
+
+	private PlayerHandler playerHandler;
 
 
 	// ====================================================================================
@@ -24,12 +24,7 @@ public class PlayerMovements : MonoBehaviour {
 	private void Start() {
 		playerAnim = GetComponent<Animator>();
 		rb = GetComponent<Rigidbody2D>();
-				
-		gameHandler = GameObject.Find("_GameHandler");
-		playerSide = gameHandler.GetComponent<GameHandler>().playerSide;
-
-		// if(playerSide == "Left") playerAnim.SetBool("isPlayer_Left", true);
-		// if(playerSide == "Right") playerAnim.SetBool("isPlayer_Right", true);
+		playerHandler = GetComponent<PlayerHandler>();
 	}
 
 
@@ -47,8 +42,8 @@ public class PlayerMovements : MonoBehaviour {
 	public void MoveLeft() {
 		movement = new Vector3(-1f, 0);
 
-		if(playerSide == "Left") moveSpeed = backwardSpeed;
-		if(playerSide == "Right") moveSpeed = forwardSpeed;
+		if(playerHandler.characterSide == "Left") moveSpeed = backwardSpeed;
+		if(playerHandler.characterSide == "Right") moveSpeed = forwardSpeed;
 	}
 
 	public void MoveRight() {
@@ -57,8 +52,8 @@ public class PlayerMovements : MonoBehaviour {
 		// playerAnim.SetFloat("walk", 1f);
 		// playerAnim.SetBool("moveRight", true);
 
-		if(playerSide == "Left") moveSpeed = forwardSpeed;
-		if(playerSide == "Right") moveSpeed = backwardSpeed;
+		if(playerHandler.characterSide == "Left") moveSpeed = forwardSpeed;
+		if(playerHandler.characterSide == "Right") moveSpeed = backwardSpeed;
 	}
 
 	public void StopMove() {

@@ -7,35 +7,30 @@ public class PlayerAttack : MonoBehaviour {
    // Public Variables
    [Header("Attack Delay")]
    public float attackAnimDelay = 0.35f;
-      
-   
-   // Public Hidden Variables
-   [HideInInspector] public bool isAttacking = false;
-   [HideInInspector] public string attackType = "";
 
    
    // Private Variables
-	private PlayerAnimators playerAnim;
+	private PlayerHandler playerHandler;
 	
 
    // ====================================================================================
 	// Start
 	// ====================================================================================
 	private void Start() {
-		playerAnim = GetComponent<PlayerAnimators>();
+		playerHandler = GetComponent<PlayerHandler>();
 	}
 
 
    // ====================================================================================
    // Public Methods
    // ====================================================================================
-	public void Attack(string type) {
+	public void Attack(string typeOfAttack) {
       
-      if(!isAttacking) {
-         playerAnim.SetAnim("attack", "left"+type, "right"+type);
+      if(!playerHandler.isAttacking) {
+         playerHandler.SetAnim("Attack", typeOfAttack);
 
-         isAttacking = true;
-         attackType = type;
+         playerHandler.isAttacking = true;
+         playerHandler.attackType = typeOfAttack;
          StartCoroutine(AttackTimeOut());
       }
 	}
@@ -47,7 +42,7 @@ public class PlayerAttack : MonoBehaviour {
    IEnumerator AttackTimeOut() {
       yield return new WaitForSeconds(attackAnimDelay);
 
-      isAttacking = false;
-      attackType = "";
+      playerHandler.isAttacking = false;
+      playerHandler.attackType = "";
    }
 }
