@@ -13,8 +13,9 @@ public class PlayerHandler : MonoBehaviour {
 
    // Public Hidden Variables
    [HideInInspector] public string characterSide;
-   [HideInInspector] public string attackType;
+   [HideInInspector] public string state;
    [HideInInspector] public bool isAttacking;
+   [HideInInspector] public bool isProtecting;
 
 
    // Private Variables
@@ -37,8 +38,36 @@ public class PlayerHandler : MonoBehaviour {
             // Has to match the name of trigger in unity controller
             string orientedAnim = side+animName;
 
-            if(behavior == "SwordColor") swordAnimators[i].SetTrigger(animName);
-            if(behavior == "Attack") armAnimators[i].SetTrigger(orientedAnim);
+            switch(behavior) {
+               case "SwordColor":
+                  swordAnimators[i].SetTrigger(animName);
+               break;
+               
+               case "Attack":
+                  state = animName;
+                  armAnimators[i].SetTrigger(orientedAnim);
+               break;
+
+               case "Protect":
+                  state = behavior;
+                  shieldAnimators[i].SetTrigger(orientedAnim);
+               break;
+
+               case "Walk":
+                  state = orientedAnim;
+                  if(!isAttacking) armAnimators[i].SetTrigger(orientedAnim);
+                  if(!isProtecting) shieldAnimators[i].SetTrigger(orientedAnim);
+                  bodyAnimators[i].SetTrigger(orientedAnim);
+               break;
+
+               // Default Idle
+               default:
+                  state = behavior;
+                  if(!isAttacking) armAnimators[i].SetTrigger(orientedAnim);
+                  if(!isProtecting) shieldAnimators[i].SetTrigger(orientedAnim);
+                  bodyAnimators[i].SetTrigger(orientedAnim);
+               break;
+            }
          }
       }
    }

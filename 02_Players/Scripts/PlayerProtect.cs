@@ -2,24 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerAttack : MonoBehaviour {
+public class PlayerProtect : MonoBehaviour {
 
    // Private Variables
 	private PlayerHandler playerHandler;
-   private float attackAnimDelay = 0.5f;
+   private float protectAnimDelay = 0.25f;
 
-
-	// public Transform attackPoint;
-
-   // public int strikeDamages = 20;
-   // public int estocDamages = 20;
-
-	// public float attackRange = 2.2f;
-	// public float attackAnimDuration = 1.5f;
-	// public float startAttackTime = 0.3f;
-	// public float timeBetweenAttack = 3.0f;
-	// private float endAttackTime;
-	
 
    // ====================================================================================
 	// Start
@@ -32,12 +20,20 @@ public class PlayerAttack : MonoBehaviour {
    // ====================================================================================
    // Public Methods
    // ====================================================================================
-	public void Attack(string typeOfAttack) {
-      if(!playerHandler.isAttacking && !playerHandler.isProtecting) {
-      
-         playerHandler.SetAnim("Attack", typeOfAttack);
-         playerHandler.isAttacking = true;
-         StartCoroutine(AttackTimeOut());
+	public void Protect() {
+      if(!playerHandler.isProtecting && !playerHandler.isAttacking) {
+
+         playerHandler.SetAnim("Protect", "Defend");
+         playerHandler.isProtecting = true;
+         StartCoroutine(ProtectTimeOut());
+      }
+	}
+
+   public void StopProtect() {
+      if(playerHandler.isProtecting) {
+
+         playerHandler.isProtecting = false;
+		   playerHandler.SetAnim("Idle", "Idle");
       }
 	}
 
@@ -45,8 +41,10 @@ public class PlayerAttack : MonoBehaviour {
    // ====================================================================================
    // Coroutines
    // ====================================================================================
-   IEnumerator AttackTimeOut() {
-      yield return new WaitForSeconds(attackAnimDelay);
-      playerHandler.isAttacking = false;
+   IEnumerator ProtectTimeOut() {
+      yield return new WaitForSeconds(protectAnimDelay);
+      
+      if(playerHandler.isProtecting) playerHandler.SetAnim("Protect", "Protected");
+      else yield break;
    }
 }

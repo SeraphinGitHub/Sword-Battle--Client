@@ -10,7 +10,8 @@ public class GameHandler : MonoBehaviour {
    
    [Header("**Server Options**")]
    public int FPS = 10;
-   public string serverURL = "http://localhost:3000/";
+   // public string serverURL = "http://localhost:3000/";
+   public string serverURL = "http://sword-battle.herokuapp.com/";
    public int endBattleCD = 3; // seconds
    public int randomizeDelay = 3; // seconds
 
@@ -31,6 +32,8 @@ public class GameHandler : MonoBehaviour {
    public GameObject optionsMenu;
    public GameObject battleUI;
    public GameObject popUpMessageUI;
+   public GameObject LoadingScreenUI;
+   public GameObject LoadingBar;
 
    [Header("**Attached InputFields**")]
    public InputField playerNameField;
@@ -42,6 +45,7 @@ public class GameHandler : MonoBehaviour {
    public TextMeshProUGUI battleNameTMP;
    public TextMeshProUGUI leftPlayerNameTMP;
    public TextMeshProUGUI rightPlayerNameTMP;
+   public TextMeshProUGUI loadingPercentTMP;
 
 
    // Hidden Public Variables
@@ -56,20 +60,28 @@ public class GameHandler : MonoBehaviour {
 
    // Private Variables
    private int baseEndBattleCD;
-   private bool isBattleOnGoing = false;
    private float frameRate;
+   private float socketConnectDelay = 3f; // seconds
+   private bool isBattleOnGoing = false;
 
    private string createdBattleName;
    private string joinedBattleName;
    private string playerName;
    private string enemyName;
+   private string playerState;
+
    
    private List<string> existBattle_IDList = new List<string>();
    private List<string> newBattles_IDList = new List<string>();
 
    private GameRandomize gameRandomize;
    private PlayerHandler localPlayerHandler;
+
+   // Enemy Scripts
    private PlayerHandler enemyPlayerHandler;
+   private PlayerMovements enemyPlayerMovements;
+   private PlayerAttack enemyPlayerAttack;
+   private PlayerProtect enemyPlayerProtect;
 
 
    // ====================================================================================
@@ -143,17 +155,20 @@ public class GameHandler : MonoBehaviour {
    class SyncPackClass {
       
       public float position;
+      public string state;
       public bool isAttacking;
-      public string attackType;
+      public bool isProtecting;
 
       public SyncPackClass(
       float position,
+      string state,
       bool isAttacking,
-      string attackType) {
+      bool isProtecting) {
 
          this.position = position;
+         this.state = state;
          this.isAttacking = isAttacking;
-         this.attackType = attackType;
+         this.isProtecting = isProtecting;
       }
    }
 
@@ -167,6 +182,11 @@ public class GameHandler : MonoBehaviour {
       optionsMenu.SetActive(false);
       battleUI.SetActive(false);
       popUpMessageUI.SetActive(false);
+
+      // ***** Temporary *****
+      LoadingScreenUI.SetActive(false);
+      loadingPercentTMP.text = "0";
+      // ***** Temporary *****
 
       serverMessageTMP.gameObject.SetActive(false);
       countDownTMP.gameObject.SetActive(false);
@@ -201,6 +221,12 @@ public class GameHandler : MonoBehaviour {
          // Create Battle
          if(channel == "battleCreated") {
             StartCoroutine(BattleCreated(createdBattleName));
+         }
+         
+         // Find Battle
+         if(channel == "findBattle") {
+            var battlesArray = response.GetValue<FoundBattleClass[]>();
+            SetBattleList(battlesArray);
          }
 
          // Join Battle
@@ -254,9 +280,17 @@ public class GameHandler : MonoBehaviour {
    }
 
    public void CreateBattle() {
-      if(!isBattleOnGoing) {
 
+      if(!isBattleOnGoing) {
          isBattleOnGoing = true;
+
+         leftPlayerNameTMP.text = "";
+         rightPlayerNameTMP.text = "";
+         battleNameTMP.text = "";
+
+         SwitchToBattle();
+         ToggleLoadingScreen();
+
          playerProps = gameRandomize.RunRandomize(new List<string>());
          playerSide = playerProps[0];
          swordColor = playerProps[4];
@@ -349,68 +383,65 @@ public class GameHandler : MonoBehaviour {
       countDownTMP.gameObject.SetActive(false);
    }
 
-   private void SetBattleList() {
-      socket.OnUnityThread("findBattle", (response) => {
+   private void SetBattleList(FoundBattleClass[] battlesArray) {
+      
+      newBattles_IDList.Clear();
 
-         var battlesArray = response.GetValue<FoundBattleClass[]>();
-         newBattles_IDList.Clear();
+      // ========================
+      // Add new Battles
+      // ========================
+      foreach (var battle in battlesArray) {
+         newBattles_IDList.Add(battle.id);
 
-         // ========================
-         // Add new Battles
-         // ========================
-         foreach (var battle in battlesArray) {
-            newBattles_IDList.Add(battle.id);
+         // If new battle not rendered already
+         if(!existBattle_IDList.Contains(battle.id)) {
+            int existBattleCount = existBattle_IDList.Count;
+            float joinBtn_PosY = -firstBattleOffsetY -battleOffsetY *existBattleCount;
 
-            // If new battle not rendered already
-            if(!existBattle_IDList.Contains(battle.id)) {
-               int existBattleCount = existBattle_IDList.Count;
-               float joinBtn_PosY = -firstBattleOffsetY -battleOffsetY *existBattleCount;
+            GameObject joinBtn = Instantiate(joinBtnPrefab, new Vector3(0, joinBtn_PosY), Quaternion.identity);
+            joinBtn.transform.SetParent(scrollContent, false);
 
-               GameObject joinBtn = Instantiate(joinBtnPrefab, new Vector3(0, joinBtn_PosY), Quaternion.identity);
-               joinBtn.transform.SetParent(scrollContent, false);
+            joinBtn.transform.Find("BattleID").gameObject.GetComponent<TMP_Text>().text = battle.id;
+            joinBtn.transform.Find("BattleName").gameObject.GetComponent<TMP_Text>().text = battle.name;
 
-               joinBtn.transform.Find("BattleID").gameObject.GetComponent<TMP_Text>().text = battle.id;
-               joinBtn.transform.Find("BattleName").gameObject.GetComponent<TMP_Text>().text = battle.name;
+            // Extend ScorllContent height
+            if(existBattleCount >= battleCountBeforeScroll) {
+               scrollContent.sizeDelta = new Vector2(0, scrollContent.sizeDelta.y + battleOffsetY);
+            }
+            existBattle_IDList.Add(battle.id);
+         }
+      }
+      
 
-               // Extend ScorllContent height
-               if(existBattleCount >= battleCountBeforeScroll) {
-                  scrollContent.sizeDelta = new Vector2(0, scrollContent.sizeDelta.y + battleOffsetY);
-               }
-               existBattle_IDList.Add(battle.id);
+      // ========================
+      // Remove old Battles
+      // ========================
+      int renderedBattleCount = scrollContent.childCount;
+
+      // For all rendered battle
+      for(int i = 0; i < renderedBattleCount; i++) {
+         Transform joinBtn = scrollContent.GetChild(i);
+         string BattleID = joinBtn.Find("BattleID").GetComponent<TMP_Text>().text;            
+         
+         // If rendered battle doesn't exist anymore 
+         if(!newBattles_IDList.Contains(BattleID)) {
+            Destroy(joinBtn.gameObject);
+            existBattle_IDList.Remove(BattleID);
+
+            // Move up other rendered battle after the destroyed one
+            for(int j = 0; j < renderedBattleCount -i; j++) {
+               RectTransform OtherjoinBtn = scrollContent.GetChild(j +i).GetComponent<RectTransform>();
+               float OtherjoinBtn_PosY = OtherjoinBtn.anchoredPosition.y + battleOffsetY;
+               OtherjoinBtn.anchoredPosition = new Vector2(0, OtherjoinBtn_PosY);
+            }
+
+            // Shorten ScorllContent height
+            int existBattleCount = existBattle_IDList.Count;
+            if(existBattleCount >= battleCountBeforeScroll) {
+               scrollContent.sizeDelta = new Vector2(0, scrollContent.sizeDelta.y - battleOffsetY);
             }
          }
-        
-
-         // ========================
-         // Remove old Battles
-         // ========================
-         int renderedBattleCount = scrollContent.childCount;
-
-         // For all rendered battle
-         for(int i = 0; i < renderedBattleCount; i++) {
-            Transform joinBtn = scrollContent.GetChild(i);
-            string BattleID = joinBtn.Find("BattleID").GetComponent<TMP_Text>().text;            
-            
-            // If rendered battle doesn't exist anymore 
-            if(!newBattles_IDList.Contains(BattleID)) {
-               Destroy(joinBtn.gameObject);
-               existBattle_IDList.Remove(BattleID);
-
-               // Move up other rendered battle after the destroyed one
-               for(int j = 0; j < renderedBattleCount -i; j++) {
-                  RectTransform OtherjoinBtn = scrollContent.GetChild(j +i).GetComponent<RectTransform>();
-                  float OtherjoinBtn_PosY = OtherjoinBtn.anchoredPosition.y + battleOffsetY;
-                  OtherjoinBtn.anchoredPosition = new Vector2(0, OtherjoinBtn_PosY);
-               }
-
-               // Shorten ScorllContent height
-               int existBattleCount = existBattle_IDList.Count;
-               if(existBattleCount >= battleCountBeforeScroll) {
-                  scrollContent.sizeDelta = new Vector2(0, scrollContent.sizeDelta.y - battleOffsetY);
-               }
-            }
-         }
-      });
+      }
    }
 
    private void JoinBattleAccepted(PlayerClass enemyPlayer) {
@@ -471,26 +502,38 @@ public class GameHandler : MonoBehaviour {
    }
 
 
+   // ***** Temporary *****
+   private void ToggleLoadingScreen() {
+
+      float maxTimer = 100f; // ==> 100%
+      float loadTimer = 0f;
+      float refreshRate = socketConnectDelay / maxTimer;
+
+      LoadingBar.transform.localScale = new Vector3(0, 1);
+      LoadingScreenUI.SetActive(true);
+      StartCoroutine(SetLoadPercentage(maxTimer, loadTimer, refreshRate));
+   }
+
+   private float loadBarScaleX(float maxTimer, float loadTimer) {
+      return loadTimer / maxTimer;
+   }
+
+
    // ====================================================================================
    // Coroutines
    // ====================================================================================
    IEnumerator EmitNewBattle(CreateBattleClass newBattle) {
-      
       SocketIO_Connect();
-      yield return new WaitForSeconds(0.2f);
+      
+      yield return new WaitForSeconds(socketConnectDelay);
       socket.Emit("createBattle", newBattle);
    }
 
    IEnumerator BattleCreated(string battleName) {
-
-      leftPlayerNameTMP.text = "";
-      rightPlayerNameTMP.text = "";
-      battleNameTMP.text = createdBattleName;
-      SwitchToBattle();
-
       yield return new WaitForSeconds(randomizeDelay);
 
       if(isBattleOnGoing) {
+         battleNameTMP.text = createdBattleName;
          SetNameText(playerSide, playerName);
 
          // Instantiate EnemyPlayer if exists
@@ -498,7 +541,12 @@ public class GameHandler : MonoBehaviour {
 
             SetNameText(enemySide, enemyName);
             gameRandomize.InstantiatePlayer(enemyProps, false);
+
+            // Init enemy Scripts
             enemyPlayerHandler = gameRandomize.enemyPlayer.GetComponent<PlayerHandler>();
+            enemyPlayerMovements = gameRandomize.enemyPlayer.GetComponent<PlayerMovements>();
+            enemyPlayerAttack = gameRandomize.enemyPlayer.GetComponent<PlayerAttack>();
+            enemyPlayerProtect = gameRandomize.enemyPlayer.GetComponent<PlayerProtect>();
          }
 
          // Instantiate LocalPlayer
@@ -527,12 +575,34 @@ public class GameHandler : MonoBehaviour {
       // Instantiate enemy player
       SetNameText(enemySide, enemyPlayer.name);
       gameRandomize.InstantiatePlayer(joinPropsList, false);
+
+      // Init enemy Scripts
       enemyPlayerHandler = gameRandomize.enemyPlayer.GetComponent<PlayerHandler>();
+      enemyPlayerMovements = gameRandomize.enemyPlayer.GetComponent<PlayerMovements>();
+      enemyPlayerAttack = gameRandomize.enemyPlayer.GetComponent<PlayerAttack>();
+      enemyPlayerProtect = gameRandomize.enemyPlayer.GetComponent<PlayerProtect>();
 
       // Start server sync
       StartSync("ServerSync");
    }
 
+   IEnumerator SetLoadPercentage(float maxTimer, float loadTimer, float refreshRate) {
+
+      loadingPercentTMP.text = loadTimer.ToString();
+
+      yield return new WaitForSeconds(refreshRate);
+
+      if(loadTimer < maxTimer) {
+         loadTimer++;
+         LoadingBar.transform.localScale = new Vector3(loadBarScaleX(maxTimer, loadTimer), 1);
+         StartCoroutine(SetLoadPercentage(maxTimer, loadTimer, refreshRate));
+      }
+
+      else {
+         yield return new WaitForSeconds(1f);
+         LoadingScreenUI.SetActive(false);
+      }
+   }
 
    // ====================================================================================
    // Server Sync Methods
@@ -546,11 +616,15 @@ public class GameHandler : MonoBehaviour {
       if(gameRandomize.localPlayer && gameRandomize.enemyPlayer) {
 
          float posX = Mathf.Floor(gameRandomize.localPlayer.transform.position.x *10) /10;
+         
+         if(playerState != "" && playerState != localPlayerHandler.state) playerState = localPlayerHandler.state;
+         else playerState = "";
 
          SyncPackClass syncPack = new SyncPackClass(
             posX,
+            playerState,
             localPlayerHandler.isAttacking,
-            localPlayerHandler.attackType
+            localPlayerHandler.isProtecting
          );
 
          socket.Emit("ServerSync", syncPack);
@@ -564,7 +638,13 @@ public class GameHandler : MonoBehaviour {
          Transform enemyTransform = gameRandomize.enemyPlayer.transform;
          enemyTransform.position = new Vector3(syncPack.position, enemyTransform.position.y, 0);
          
-         if(syncPack.attackType != "") gameRandomize.enemyPlayer.GetComponent<PlayerAttack>().Attack(syncPack.attackType);
+         if(syncPack.state == "Idle") enemyPlayerMovements.StopMove();
+         if(syncPack.state == "LeftForward") enemyPlayerMovements.MoveRight();
+         if(syncPack.state == "LeftBackward") enemyPlayerMovements.MoveLeft();
+         if(syncPack.state == "RightForward") enemyPlayerMovements.MoveLeft();
+         if(syncPack.state == "RightBackward") enemyPlayerMovements.MoveRight();
+         if(syncPack.state == "Estoc" || syncPack.state == "Strike") enemyPlayerAttack.Attack(syncPack.state);
+         if(syncPack.state == "Protect") enemyPlayerProtect.Protect();
       }
    }
 }

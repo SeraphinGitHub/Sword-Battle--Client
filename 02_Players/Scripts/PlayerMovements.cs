@@ -4,11 +4,9 @@ using UnityEngine;
 
 public class PlayerMovements : MonoBehaviour {
 
-	[Header("MoveSpeed")]
-	public float forwardSpeed = 8f;
-	public float backwardSpeed = 4f;
-
 	// Private variables
+	private float forwardSpeed = 6f;
+	private float backwardSpeed = 4f;
 	private float moveSpeed;
 	
 	private Animator playerAnim;
@@ -25,6 +23,8 @@ public class PlayerMovements : MonoBehaviour {
 		playerAnim = GetComponent<Animator>();
 		rb = GetComponent<Rigidbody2D>();
 		playerHandler = GetComponent<PlayerHandler>();
+
+		playerHandler.SetAnim("Idle", "Idle");
 	}
 
 
@@ -40,25 +40,34 @@ public class PlayerMovements : MonoBehaviour {
 	// Public Methods
 	// =========================================================================================================
 	public void MoveLeft() {
-		movement = new Vector3(-1f, 0);
 
-		if(playerHandler.characterSide == "Left") moveSpeed = backwardSpeed;
-		if(playerHandler.characterSide == "Right") moveSpeed = forwardSpeed;
+		movement = new Vector3(-1f, 0);
+		SetMoveAnim(backwardSpeed, "Left", "Backward");
+		SetMoveAnim(forwardSpeed, "Right", "Forward");
 	}
 
 	public void MoveRight() {
-		movement = new Vector3(1f, 0);
-		
-		// playerAnim.SetFloat("walk", 1f);
-		// playerAnim.SetBool("moveRight", true);
 
-		if(playerHandler.characterSide == "Left") moveSpeed = forwardSpeed;
-		if(playerHandler.characterSide == "Right") moveSpeed = backwardSpeed;
+		movement = new Vector3(1f, 0);
+		SetMoveAnim(forwardSpeed, "Left", "Forward");
+		SetMoveAnim(backwardSpeed, "Right", "Backward");
 	}
 
 	public void StopMove() {
 
-		// playerAnim.SetFloat("walk", 0);
+		playerHandler.SetAnim("Idle", "Idle");
 		movement = new Vector3(0, 0);
+	}
+
+
+	// =========================================================================================================
+	// Private Methods
+	// =========================================================================================================
+	private void SetMoveAnim(float speed, string side, string animName) {
+
+		if(playerHandler.characterSide == side) {
+			moveSpeed = speed;
+			playerHandler.SetAnim("Walk", animName);
+		}
 	}
 }
