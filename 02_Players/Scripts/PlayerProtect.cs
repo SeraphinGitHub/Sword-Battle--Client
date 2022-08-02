@@ -23,8 +23,8 @@ public class PlayerProtect : MonoBehaviour {
 	public void Protect() {
       if(!playerHandler.isProtecting && !playerHandler.isAttacking) {
 
-         playerHandler.SetAnim("Protect", "Defend");
          playerHandler.isProtecting = true;
+         playerHandler.SetPlayerAnim("Protect", "Defend");
          StartCoroutine(ProtectTimeOut());
       }
 	}
@@ -33,7 +33,7 @@ public class PlayerProtect : MonoBehaviour {
       if(playerHandler.isProtecting) {
 
          playerHandler.isProtecting = false;
-		   playerHandler.SetAnim("Idle", "Idle");
+		   playerHandler.IdleAnim();
       }
 	}
 
@@ -44,7 +44,10 @@ public class PlayerProtect : MonoBehaviour {
    IEnumerator ProtectTimeOut() {
       yield return new WaitForSeconds(protectAnimDelay);
       
-      if(playerHandler.isProtecting) playerHandler.SetAnim("Protect", "Protected");
-      else yield break;
+      if(playerHandler.isProtecting) playerHandler.SetPlayerAnim("Protect", "Protected");
+      else {
+   		playerHandler.IdleAnim();
+         yield break;
+      }
    }
 }

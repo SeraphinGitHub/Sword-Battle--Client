@@ -21,13 +21,13 @@ public class WorkerAttackSystem : MonoBehaviour {
 	[SerializeField] private GameObject front = default;  //Temporary, delete later !
 	private Animator enemyAnim;
 	
-    // Start
+	// Start
 	private void Start() {
 		endAttackTime = attackAnimDuration - startAttackTime;
-        front.SetActive(false);
+		front.SetActive(false);
 		enemyAnim = GetComponent<Animator>();
 		StartCoroutine(Co_AttackCycle());
-    }
+	}
 	
 	IEnumerator Co_AttackCycle() {
 		enemyAnim.SetBool("Attack", true);

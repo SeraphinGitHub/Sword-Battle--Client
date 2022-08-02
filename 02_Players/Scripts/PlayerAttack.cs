@@ -35,8 +35,8 @@ public class PlayerAttack : MonoBehaviour {
 	public void Attack(string typeOfAttack) {
       if(!playerHandler.isAttacking && !playerHandler.isProtecting) {
       
-         playerHandler.SetAnim("Attack", typeOfAttack);
          playerHandler.isAttacking = true;
+         playerHandler.SetPlayerAnim("Attack", typeOfAttack);
          StartCoroutine(AttackTimeOut());
       }
 	}
@@ -48,5 +48,6 @@ public class PlayerAttack : MonoBehaviour {
    IEnumerator AttackTimeOut() {
       yield return new WaitForSeconds(attackAnimDelay);
       playerHandler.isAttacking = false;
+		playerHandler.IdleAnim();
    }
 }

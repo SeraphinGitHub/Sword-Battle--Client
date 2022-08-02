@@ -7,7 +7,6 @@ public class PlayerMovements : MonoBehaviour {
 	// Private variables
 	private float forwardSpeed = 6f;
 	private float backwardSpeed = 4f;
-	private float moveSpeed;
 	
 	private Animator playerAnim;
 	private Rigidbody2D rb;
@@ -23,8 +22,6 @@ public class PlayerMovements : MonoBehaviour {
 		playerAnim = GetComponent<Animator>();
 		rb = GetComponent<Rigidbody2D>();
 		playerHandler = GetComponent<PlayerHandler>();
-
-		playerHandler.SetAnim("Idle", "Idle");
 	}
 
 
@@ -32,7 +29,7 @@ public class PlayerMovements : MonoBehaviour {
 	// Fixed Update
 	// ====================================================================================
 	private void FixedUpdate() {
-		rb.MovePosition(transform.position +movement *moveSpeed *Time.fixedDeltaTime);
+		rb.MovePosition(transform.position +movement *playerHandler.moveSpeed *Time.fixedDeltaTime);
 	}
 	
 
@@ -42,6 +39,8 @@ public class PlayerMovements : MonoBehaviour {
 	public void MoveLeft() {
 
 		movement = new Vector3(-1f, 0);
+		playerHandler.isWalking = true;
+
 		SetMoveAnim(backwardSpeed, "Left", "Backward");
 		SetMoveAnim(forwardSpeed, "Right", "Forward");
 	}
@@ -49,13 +48,16 @@ public class PlayerMovements : MonoBehaviour {
 	public void MoveRight() {
 
 		movement = new Vector3(1f, 0);
+		playerHandler.isWalking = true;
+
 		SetMoveAnim(forwardSpeed, "Left", "Forward");
 		SetMoveAnim(backwardSpeed, "Right", "Backward");
 	}
 
 	public void StopMove() {
 
-		playerHandler.SetAnim("Idle", "Idle");
+		playerHandler.isWalking = false;
+		playerHandler.IdleAnim();
 		movement = new Vector3(0, 0);
 	}
 
@@ -65,9 +67,9 @@ public class PlayerMovements : MonoBehaviour {
 	// =========================================================================================================
 	private void SetMoveAnim(float speed, string side, string animName) {
 
-		if(playerHandler.characterSide == side) {
-			moveSpeed = speed;
-			playerHandler.SetAnim("Walk", animName);
+		if(side == playerHandler.characterSide) {
+			playerHandler.moveSpeed = speed;
+			playerHandler.SetPlayerAnim("Walk", animName);
 		}
 	}
 }

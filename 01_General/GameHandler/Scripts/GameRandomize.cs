@@ -5,7 +5,7 @@ using UnityEngine;
 public class GameRandomize : MonoBehaviour {
 
    public float posX = 6.5f;
-   public float posY = 0.3f;
+   public float posY = 17f;
 
    [Header("Attached Prefabs")]
    public GameObject playerPrefab;
@@ -50,9 +50,17 @@ public class GameRandomize : MonoBehaviour {
    private GameObject[] rightHairStyleArray;
    private GameObject[] tabardArray;
 
-   private PlayerHandler playerHandler;
+   private GameHandler gameHandler;
 
    
+   // ====================================================================================
+   // Start
+   // ====================================================================================
+   private void Start() {
+      gameHandler = GetComponent<GameHandler>();
+   }
+
+
    // ====================================================================================
    // Public Methods
    // ====================================================================================
@@ -95,28 +103,24 @@ public class GameRandomize : MonoBehaviour {
 
       GameObject playerInstance = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
       GameObject playerUI = getGameObj(playerInstance, "Player_UI");
+      PlayerHandler playerHandler = playerInstance.GetComponent<PlayerHandler>();
+      Rigidbody2D playerRB = playerInstance.GetComponent<Rigidbody2D>();
 
-      SetSpritesArrays(playerInstance);
+      SetPlayerSprites(playerInstance);
       UnsetPlayer();
       SetPlayer(propsList);
 
+      playerHandler.SetCharacterSide(propsList[0]);
+      playerHandler.SetSwordColor(propsList[4]);
+
+      playerUI.SetActive(false);
       playerInstance.transform.position = new Vector3(posX *sidePos, posY, 0);
-      playerHandler = playerInstance.GetComponent<PlayerHandler>();
 
-      // Set sword color by enemySide/playerSide and swordColor
-      string colorAnimation = propsList[4];
-      playerHandler.characterSide = propsList[0];
-      playerHandler.SetAnim("SwordColor", colorAnimation);
+      if(isLocalPlayer) localPlayer = playerInstance;
+      else enemyPlayer = playerInstance;
 
-      if(isLocalPlayer) {
-         playerUI.SetActive(true);
-         localPlayer = playerInstance;
-      }
-
-      else {
-         playerUI.SetActive(false);
-         enemyPlayer = playerInstance;
-      }
+      // Reset gravity after game entry
+      StartCoroutine(ResetGravity(playerHandler, playerRB, playerUI, isLocalPlayer));
    }
 
    public void DestroyAllPlayers() {
@@ -168,7 +172,7 @@ public class GameRandomize : MonoBehaviour {
       };
    }
 
-   private void SetSpritesArrays(GameObject player) {
+   private void SetPlayerSprites(GameObject player) {
 
       // Player Side
       spritesArray = new GameObject[] {
@@ -256,6 +260,24 @@ public class GameRandomize : MonoBehaviour {
             leftHeadArray[i_Hair].SetActive(false);
             rightHeadArray[i_Hair].SetActive(false);
          }        
+      }
+   }
+
+   // ====================================================================================
+   // Coroutines
+   // ====================================================================================
+   IEnumerator ResetGravity(
+   PlayerHandler playerHandler,
+   Rigidbody2D playerRB,
+   GameObject playerUI,
+   bool isLocalPlayer) {
+
+      yield return new WaitForSeconds(gameHandler.resetGravityDelay);
+      playerRB.gravityScale = 0;
+
+      if(isLocalPlayer) {
+         playerUI.SetActive(true);
+         playerHandler.playerUIAnimator.SetTrigger("showUI");
       }
    }
 
