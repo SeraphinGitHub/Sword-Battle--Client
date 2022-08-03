@@ -10,20 +10,20 @@ public class GameHandler : MonoBehaviour {
    
    [Header("**Server Options**")]
    // ********** Dev **********
-      private int FPS = 5;
-      private string serverURL = "http://localhost:3000/";
-      private int endBattleCD = 3; // seconds
-      private int randomizeDelay = 1; // seconds
-      private float socketConnectDelay = 0.01f; // seconds
+      // private int FPS = 5;
+      // private string serverURL = "http://localhost:3000/";
+      // private int endBattleCD = 3; // seconds
+      // private int randomizeDelay = 1; // seconds
+      // private float socketConnectDelay = 0.01f; // seconds
    // ********** Dev **********
 
 
    // ********** Build **********
-      // private int FPS = 30;
-      // private string serverURL = "http://sword-battle.herokuapp.com/";
-      // private int endBattleCD = 3; // seconds
-      // private int randomizeDelay = 1; // seconds
-      // private float socketConnectDelay = 3f; // seconds
+      private int FPS = 30;
+      private string serverURL = "http://sword-battle.herokuapp.com/";
+      private int endBattleCD = 3; // seconds
+      private int randomizeDelay = 1; // seconds
+      private float socketConnectDelay = 3f; // seconds
    // ********** Build **********
 
 
@@ -70,7 +70,7 @@ public class GameHandler : MonoBehaviour {
    [HideInInspector] public string swordColor;
    [HideInInspector] public string currentState;
    [HideInInspector] public int newStateIndex;
-   [HideInInspector] public float resetGravityDelay;
+   [HideInInspector] public float showPayerUIDelay;
 
    [HideInInspector] public string[] statesArray = new string[] {
       "Idle",
@@ -175,7 +175,7 @@ public class GameHandler : MonoBehaviour {
    class SyncPackClass {
       
       public int stateIndex;
-      public float posX;
+      public float movePosX;
       public float moveSpeed;
       public bool isWalking;
       public bool isAttacking;
@@ -183,14 +183,14 @@ public class GameHandler : MonoBehaviour {
 
       public SyncPackClass(
       int stateIndex,
-      float posX,
+      float movePosX,
       float moveSpeed,
       bool isWalking,
       bool isAttacking,
       bool isProtecting) {
 
          this.stateIndex = stateIndex;
-         this.posX = posX;
+         this.movePosX = movePosX;
          this.moveSpeed = moveSpeed;
          this.isWalking = isWalking;
          this.isAttacking = isAttacking;
@@ -239,7 +239,7 @@ public class GameHandler : MonoBehaviour {
       createdBattleName = battleNameField.text;
       baseEndBattleCD = endBattleCD;
       frameRate = Mathf.Floor(1f/FPS *1000)/1000;
-      resetGravityDelay = randomizeDelay +0.5f;
+      showPayerUIDelay = randomizeDelay +0.5f;
 
 
       // ===================================
@@ -633,7 +633,7 @@ public class GameHandler : MonoBehaviour {
       }
       else yield break;
 
-      yield return new WaitForSeconds(resetGravityDelay);
+      yield return new WaitForSeconds(showPayerUIDelay);
 
       if(isBattleOnGoing) {
          
@@ -657,15 +657,13 @@ public class GameHandler : MonoBehaviour {
    public void ServerSync() {
       if(gameRandomize.localPlayer && gameRandomize.enemyPlayer) {
 
-         float posX = Mathf.Floor(gameRandomize.localPlayer.transform.position.x *10) /10;
-
          for(int i = 0; i < statesArray.Length; i++) {
             if(currentState == playerSide+statesArray[i] && newStateIndex != i) newStateIndex = i;
          }
          
          SyncPackClass syncPack = new SyncPackClass(
             newStateIndex,
-            posX,
+            localPlayerHandler.movePosX,
             localPlayerHandler.moveSpeed,
             localPlayerHandler.isWalking,
             localPlayerHandler.isAttacking,
@@ -680,13 +678,8 @@ public class GameHandler : MonoBehaviour {
    private void ReceiveServerSync(SyncPackClass syncPack) {
       if(gameRandomize.enemyPlayer) {
 
-         // Move Transform
-         // Transform enemyTransform = gameRandomize.enemyPlayer.transform;
-         // enemyTransform.position = new Vector3(syncPack.posX, enemyTransform.position.y);
-
-         // enemyPlayerHandler.EnemyMovements(syncPack.posX, syncPack.moveSpeed);
-         enemyPlayerHandler.aze = true;
-         enemyPlayerHandler.localPosX = syncPack.posX;
+         // Movements
+         enemyPlayerHandler.EnemyMovements(syncPack.movePosX, syncPack.moveSpeed);
 
          // Animations
          enemyPlayerHandler.SetEnemyAnim(

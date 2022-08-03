@@ -14,12 +14,16 @@ public class PlayerHandler : MonoBehaviour {
 
    // Public Hidden Variables
    [HideInInspector] public string characterSide;
+
+   [HideInInspector] public float spawnX = 6.5f;
+   [HideInInspector] public float spawnY = 0.2f;
+   [HideInInspector] public float movePosX;
    [HideInInspector] public float moveSpeed;
+
+   [HideInInspector] public bool isLocalPlayer;
    [HideInInspector] public bool isWalking;
    [HideInInspector] public bool isAttacking;
    [HideInInspector] public bool isProtecting;
-   
-   [HideInInspector] public float localPosX;
    
 
    // Private Variables
@@ -36,32 +40,23 @@ public class PlayerHandler : MonoBehaviour {
    private float enemySpeed;
    
    private GameHandler gameHandler;
-   private Vector3 currentPosition;
-   private Vector3 newPosition;
-   private Vector3 moveDir;
-   private Rigidbody2D rb;
-
-   [HideInInspector] public bool aze;
+   public Vector3 movePosition;
 
 
    // ====================================================================================
-   // Start / Fixed Update
+   // Start / Update
    // ====================================================================================
    private void Start() {
       gameHandler = GameObject.Find("_GameHandler").GetComponent<GameHandler>();
       statesArray = gameHandler.statesArray;
-      currentPosition = transform.position;
-      rb = GetComponent<Rigidbody2D>();
+      movePosition = Vector3.zero;
+      
       IdleAnim();
-
-      Debug.Log(characterSide);
    }
 
-   private void FixedUpdate() {
-
-      if(aze) {
-         transform.position = new Vector3(localPosX, transform.position.y);
-      }
+   // For enemy player move sync
+   private void Update() {
+      if(!isLocalPlayer) transform.Translate(movePosition *enemySpeed *Time.deltaTime);
 	}
 
 
@@ -93,18 +88,13 @@ public class PlayerHandler : MonoBehaviour {
       if(behavior == "Walk" || behavior == "Idle") {
          if(!isAttacking) armAnimators[sideIndex].SetTrigger(playerState);
          if(!isProtecting) shieldAnimators[sideIndex].SetTrigger(playerState);
-         if(behavior == "Walk") bodyAnimators[sideIndex].SetTrigger(playerState);
-         else if(!isWalking)bodyAnimators[sideIndex].SetTrigger(playerState);
+         bodyAnimators[sideIndex].SetTrigger(playerState);
       }
       if(behavior == "Attack") armAnimators[sideIndex].SetTrigger(playerState);
       if(behavior == "Protect") shieldAnimators[sideIndex].SetTrigger(playerState);
    }
 
-   public void SetEnemyAnim(
-   int newIndex,
-   bool isWalk,
-   bool isAttack,
-   bool isProtect) {
+   public void SetEnemyAnim(int newIndex, bool isWalk, bool isAttack, bool isProtect) {
 
       // 0 => "Idle",
       // 1 => "Forward",
@@ -122,12 +112,9 @@ public class PlayerHandler : MonoBehaviour {
          // Walk or Idle
          if(newIndex == 0 || newIndex == 1 || newIndex == 2) {
 
-            Debug.Log(enemyState);
-
-            armAnimators[sideIndex].SetTrigger(enemyState);
+            if(!isAttack) armAnimators[sideIndex].SetTrigger(enemyState);
             if(!isProtect) shieldAnimators[sideIndex].SetTrigger(enemyState);
-            if(newIndex == 1 || newIndex == 2) bodyAnimators[sideIndex].SetTrigger(enemyState);
-            else bodyAnimators[sideIndex].SetTrigger(enemyState);
+            bodyAnimators[sideIndex].SetTrigger(enemyState);
          }
          
          // Attack
@@ -138,14 +125,10 @@ public class PlayerHandler : MonoBehaviour {
       }
    }
 
-   public void EnemyMovements(float posX, float moveSpeed) {
-      
-      // if(posX != localPosX) {
-         posX = localPosX;
-         // enemySpeed = moveSpeed;
-         // newPosition = new Vector3(posX, transform.position.y);
-         // currentPosition = newPosition;
-      // }
+   public void EnemyMovements(float movePosX, float moveSpeed) {
+      		
+      enemySpeed = moveSpeed;
+      movePosition = new Vector3(movePosX, 0);
    }
 
 }

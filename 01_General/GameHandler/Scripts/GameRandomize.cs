@@ -4,9 +4,6 @@ using UnityEngine;
 
 public class GameRandomize : MonoBehaviour {
 
-   public float posX = 6.5f;
-   public float posY = 17f;
-
    [Header("Attached Prefabs")]
    public GameObject playerPrefab;
    
@@ -104,7 +101,6 @@ public class GameRandomize : MonoBehaviour {
       GameObject playerInstance = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
       GameObject playerUI = getGameObj(playerInstance, "Player_UI");
       PlayerHandler playerHandler = playerInstance.GetComponent<PlayerHandler>();
-      Rigidbody2D playerRB = playerInstance.GetComponent<Rigidbody2D>();
 
       SetPlayerSprites(playerInstance);
       UnsetPlayer();
@@ -114,13 +110,16 @@ public class GameRandomize : MonoBehaviour {
       playerHandler.SetSwordColor(propsList[4]);
 
       playerUI.SetActive(false);
-      playerInstance.transform.position = new Vector3(posX *sidePos, posY, 0);
+      playerInstance.transform.position = new Vector3(playerHandler.spawnX *sidePos, playerHandler.spawnY, 0);
 
-      if(isLocalPlayer) localPlayer = playerInstance;
+      if(isLocalPlayer) {
+         localPlayer = playerInstance;
+         playerHandler.isLocalPlayer = true;
+      }
       else enemyPlayer = playerInstance;
 
-      // Reset gravity after game entry
-      StartCoroutine(ResetGravity(playerHandler, playerRB, playerUI, isLocalPlayer));
+      // Show player UI after game entry
+      StartCoroutine(ShowPlayerUI(playerHandler, playerUI, isLocalPlayer));
    }
 
    public void DestroyAllPlayers() {
@@ -266,14 +265,11 @@ public class GameRandomize : MonoBehaviour {
    // ====================================================================================
    // Coroutines
    // ====================================================================================
-   IEnumerator ResetGravity(
+   IEnumerator ShowPlayerUI(
    PlayerHandler playerHandler,
-   Rigidbody2D playerRB,
    GameObject playerUI,
    bool isLocalPlayer) {
-
-      yield return new WaitForSeconds(gameHandler.resetGravityDelay);
-      playerRB.gravityScale = 0;
+      yield return new WaitForSeconds(gameHandler.showPayerUIDelay);
 
       if(isLocalPlayer) {
          playerUI.SetActive(true);

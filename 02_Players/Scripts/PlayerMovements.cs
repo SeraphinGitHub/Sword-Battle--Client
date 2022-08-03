@@ -7,29 +7,23 @@ public class PlayerMovements : MonoBehaviour {
 	// Private variables
 	private float forwardSpeed = 6f;
 	private float backwardSpeed = 4f;
+	private float playerSpeed;
 	
 	private Animator playerAnim;
-	private Rigidbody2D rb;
-	private Vector3 movement;
-
+	private Vector3 movePosition;
 	private PlayerHandler playerHandler;
 
 
 	// ====================================================================================
-	// Start
+	// Start / Update
 	// ====================================================================================
 	private void Start() {
 		playerAnim = GetComponent<Animator>();
-		rb = GetComponent<Rigidbody2D>();
 		playerHandler = GetComponent<PlayerHandler>();
 	}
 
-
-	// ====================================================================================
-	// Fixed Update
-	// ====================================================================================
-	private void FixedUpdate() {
-		rb.MovePosition(transform.position +movement *playerHandler.moveSpeed *Time.fixedDeltaTime);
+	private void Update() {
+		transform.Translate(movePosition *playerSpeed *Time.deltaTime);
 	}
 	
 
@@ -38,27 +32,26 @@ public class PlayerMovements : MonoBehaviour {
 	// =========================================================================================================
 	public void MoveLeft() {
 
-		movement = new Vector3(-1f, 0);
-		playerHandler.isWalking = true;
-
+		movePosition = new Vector3(-1f, 0);
+		playerHandler.movePosX = -1f;
 		SetMoveAnim(backwardSpeed, "Left", "Backward");
 		SetMoveAnim(forwardSpeed, "Right", "Forward");
 	}
 
 	public void MoveRight() {
 
-		movement = new Vector3(1f, 0);
-		playerHandler.isWalking = true;
-
+		movePosition = new Vector3(1f, 0);
+		playerHandler.movePosX = 1f;
 		SetMoveAnim(forwardSpeed, "Left", "Forward");
 		SetMoveAnim(backwardSpeed, "Right", "Backward");
 	}
 
 	public void StopMove() {
 
+		movePosition = new Vector3(0, 0);
+		playerHandler.movePosX = 0;
 		playerHandler.isWalking = false;
 		playerHandler.IdleAnim();
-		movement = new Vector3(0, 0);
 	}
 
 
@@ -68,7 +61,9 @@ public class PlayerMovements : MonoBehaviour {
 	private void SetMoveAnim(float speed, string side, string animName) {
 
 		if(side == playerHandler.characterSide) {
+			playerSpeed = speed;
 			playerHandler.moveSpeed = speed;
+			playerHandler.isWalking = true;
 			playerHandler.SetPlayerAnim("Walk", animName);
 		}
 	}
