@@ -5,8 +5,8 @@ using UnityEngine;
 public class PlayerAttack : MonoBehaviour {
 
    // Private Variables
-	private PlayerHandler playerHandler;
-   private float attackAnimDelay = 0.5f;
+	private PlayerHandler pH;
+   private float attackAnimDelay = 0.4f;
 
 
 	// public Transform attackPoint;
@@ -25,18 +25,18 @@ public class PlayerAttack : MonoBehaviour {
 	// Start
 	// ====================================================================================
 	private void Start() {
-		playerHandler = GetComponent<PlayerHandler>();
+		pH = GetComponent<PlayerHandler>();
 	}
 
 
    // ====================================================================================
    // Public Methods
    // ====================================================================================
-	public void Attack(string typeOfAttack) {
-      if(!playerHandler.isAttacking && !playerHandler.isProtecting) {
-      
-         playerHandler.isAttacking = true;
-         playerHandler.SetPlayerAnim("Attack", typeOfAttack);
+	public void Attack(string attackType) {
+      if(!pH.isProtecting && !pH.isAttacking) {
+            
+         pH.isAttacking = true;
+         pH.SetPlayerAnim("Sword", attackType);
          StartCoroutine(AttackTimeOut());
       }
 	}
@@ -47,7 +47,8 @@ public class PlayerAttack : MonoBehaviour {
    // ====================================================================================
    IEnumerator AttackTimeOut() {
       yield return new WaitForSeconds(attackAnimDelay);
-      playerHandler.isAttacking = false;
-		playerHandler.IdleAnim();
+
+      if(pH.isAttacking) pH.isAttacking = false;
+      if(!pH.isWalking) pH.SetPlayerAnim("Sword", "Idle");
    }
 }

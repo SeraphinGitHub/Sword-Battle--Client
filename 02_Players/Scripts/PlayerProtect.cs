@@ -5,15 +5,15 @@ using UnityEngine;
 public class PlayerProtect : MonoBehaviour {
 
    // Private Variables
-	private PlayerHandler playerHandler;
-   private float protectAnimDelay = 0.25f;
+	private PlayerHandler pH;
+   private float protectAnimDelay = 0.125f;
 
 
    // ====================================================================================
 	// Start
 	// ====================================================================================
 	private void Start() {
-		playerHandler = GetComponent<PlayerHandler>();
+		pH = GetComponent<PlayerHandler>();
 	}
 
 
@@ -21,19 +21,21 @@ public class PlayerProtect : MonoBehaviour {
    // Public Methods
    // ====================================================================================
 	public void Protect() {
-      if(!playerHandler.isProtecting && !playerHandler.isAttacking) {
+      if(!pH.isProtecting && !pH.isAttacking) {
 
-         playerHandler.isProtecting = true;
-         playerHandler.SetPlayerAnim("Protect", "Defend");
+         pH.isProtecting = true;
+         pH.SetPlayerAnim("Shield", "Defend");
+
          StartCoroutine(ProtectTimeOut());
       }
 	}
 
    public void StopProtect() {
-      if(playerHandler.isProtecting) {
+      if(pH.isProtecting) {
 
-         playerHandler.isProtecting = false;
-		   playerHandler.IdleAnim();
+         pH.isProtecting = false;
+         if(!pH.isWalking) pH.SetPlayerAnim("Shield", "Idle");
+         else pH.SetPlayerAnim("Shield", pH.walkDirection);
       }
 	}
 
@@ -44,10 +46,7 @@ public class PlayerProtect : MonoBehaviour {
    IEnumerator ProtectTimeOut() {
       yield return new WaitForSeconds(protectAnimDelay);
       
-      if(playerHandler.isProtecting) playerHandler.SetPlayerAnim("Protect", "Protected");
-      else {
-   		playerHandler.IdleAnim();
-         yield break;
-      }
+      if(pH.isProtecting) pH.SetPlayerAnim("Shield", "Protected");
+      else yield break;
    }
 }

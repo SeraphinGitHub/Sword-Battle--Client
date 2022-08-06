@@ -10,30 +10,28 @@ public class GameHandler : MonoBehaviour {
    
    [Header("**Server Options**")]
    // ********** Dev **********
-      // private int FPS = 5;
-      // private string serverURL = "http://localhost:3000/";
-      // private int endBattleCD = 3; // seconds
-      // private int randomizeDelay = 1; // seconds
-      // private float socketConnectDelay = 0.01f; // seconds
+      private int FPS = 10;
+      private string serverURL = "http://localhost:3000/";
+      private int endBattleCD = 3; // seconds
+      private int randomizeDelay = 1; // seconds
    // ********** Dev **********
 
 
    // ********** Build **********
-      private int FPS = 30;
-      private string serverURL = "http://sword-battle.herokuapp.com/";
-      private int endBattleCD = 3; // seconds
-      private int randomizeDelay = 1; // seconds
-      private float socketConnectDelay = 3f; // seconds
+      // private int FPS = 40;
+      // private string serverURL = "http://sword-battle.herokuapp.com/";
+      // private int endBattleCD = 3; // seconds
+      // private int randomizeDelay = 1; // seconds
    // ********** Build **********
 
 
    [Header("**Attached Components**")]
-   public Camera mainCamera;
-   public Color32 skyBox;
-   public GameObject floor;
-   public RectTransform scrollContent;
-   public GameObject joinBtnPrefab;
    public Animator battleUIAnimator;
+   public Animator loadingGearsAnimator;
+   public GameObject joinBtnPrefab;
+   public GameObject connectingText;
+   public GameObject connectedText;
+   public RectTransform scrollContent;
 
    [Header("**BattleList Options**")]
    public int firstBattleOffsetY = 20;
@@ -41,13 +39,12 @@ public class GameHandler : MonoBehaviour {
    public int battleCountBeforeScroll = 5;
 
    [Header("**Attached Canvas**")]
+   public GameObject loadingScreen;
    public GameObject mainMenu;
    public GameObject findBattleMenu;
    public GameObject optionsMenu;
    public GameObject battleUI;
    public GameObject popUpMessageUI;
-   public GameObject loadingScreenUI;
-   public GameObject loadingBar;
 
    [Header("**Attached InputFields**")]
    public InputField playerNameField;
@@ -59,17 +56,20 @@ public class GameHandler : MonoBehaviour {
    public TextMeshProUGUI battleNameTMP;
    public TextMeshProUGUI leftPlayerNameTMP;
    public TextMeshProUGUI rightPlayerNameTMP;
-   public TextMeshProUGUI loadingPercentTMP;
 
 
    // Hidden Public Variables
    [HideInInspector] public SocketIOUnity socket;
    [HideInInspector] public List<string> playerProps;
    [HideInInspector] public List<string> enemyProps;
+
    [HideInInspector] public string battleID;
    [HideInInspector] public string swordColor;
    [HideInInspector] public string currentState;
+
    [HideInInspector] public int newStateIndex;
+
+   [HideInInspector] public float frameRate;
    [HideInInspector] public float showPayerUIDelay;
 
    [HideInInspector] public string[] statesArray = new string[] {
@@ -85,9 +85,9 @@ public class GameHandler : MonoBehaviour {
 
    // Private Variables
    private int baseEndBattleCD;
-   private float frameRate;
-   // private float socketConnectDelay = 3f; // seconds
+   private bool isConnected = false;
    private bool isBattleOnGoing = false;
+   private float toggleGearDelay = 0.75f;
 
    private string createdBattleName;
    private string joinedBattleName;
@@ -176,23 +176,20 @@ public class GameHandler : MonoBehaviour {
       
       public int stateIndex;
       public float movePosX;
-      public float moveSpeed;
-      public bool isWalking;
+      public float playerSpeed;
       public bool isAttacking;
       public bool isProtecting;
 
       public SyncPackClass(
       int stateIndex,
       float movePosX,
-      float moveSpeed,
-      bool isWalking,
+      float playerSpeed,
       bool isAttacking,
       bool isProtecting) {
 
          this.stateIndex = stateIndex;
          this.movePosX = movePosX;
-         this.moveSpeed = moveSpeed;
-         this.isWalking = isWalking;
+         this.playerSpeed = playerSpeed;
          this.isAttacking = isAttacking;
          this.isProtecting = isProtecting;
       }
@@ -216,8 +213,10 @@ public class GameHandler : MonoBehaviour {
       SocketIO_Connect();
 
       // Hide UI components
-      floor.SetActive(false);
-      mainMenu.SetActive(false);
+      mainMenu.SetActive(true);
+      loadingScreen.SetActive(true);
+      connectingText.SetActive(true);
+      connectedText.SetActive(false);
       findBattleMenu.SetActive(false);
       optionsMenu.SetActive(false);
       battleUI.SetActive(false);
@@ -231,8 +230,7 @@ public class GameHandler : MonoBehaviour {
 
    private void Start() {
 
-      // Await for Socket.io to connect
-      LoadingSocketIO();
+      StartCoroutine(ShowLoadingGear());
 
       // Init Variables
       playerName = playerNameField.text;
@@ -247,10 +245,14 @@ public class GameHandler : MonoBehaviour {
       // ===================================
       socket.OnAnyInUnityThread((channel, response) => {
          
+         // Connection
+         if(channel == "connected") {
+            SocketConnected();
+         }
+
          // Create Battle
          if(channel == "battleCreated") {
             battleID = response.GetValue().GetRawText();
-            StartCoroutine(BattleCreated(createdBattleName));
          }
          
          // Find Battle
@@ -350,7 +352,9 @@ public class GameHandler : MonoBehaviour {
             hostPlayer
          );
 
-         socket.Emit("createBattle", newBattle);
+         StartCoroutine(BattleCreated(createdBattleName));
+
+         if(isConnected) socket.Emit("createBattle", newBattle);
       }
    }
 
@@ -378,7 +382,9 @@ public class GameHandler : MonoBehaviour {
    }
 
    public void QuitApplication() {
+
       SocketIO_Disconnect();
+      isConnected = false;
       Application.Quit();
    }
 
@@ -386,20 +392,14 @@ public class GameHandler : MonoBehaviour {
    // ====================================================================================
    // Private Methods
    // ====================================================================================
-   private float loadBarScaleX(float maxTimer, float loadTimer) {
-      return loadTimer / maxTimer;
-   }
+   private void SocketConnected() {
+      
+      isConnected = true;
 
-   private void LoadingSocketIO() {
+      connectingText.SetActive(false);
+      connectedText.SetActive(true);
 
-      float maxTimer = 100f; // ==> 100%
-      float loadTimer = 0f;
-      float refreshRate = socketConnectDelay / maxTimer;
-
-      loadingBar.transform.localScale = new Vector3(0, 1);
-      loadingScreenUI.SetActive(true);
-
-      StartCoroutine(SetLoadPercentage(maxTimer, loadTimer, refreshRate));
+      StartCoroutine(HideLoadingGear());
    }
 
    private void SetNameText(string side, string name) {
@@ -438,7 +438,7 @@ public class GameHandler : MonoBehaviour {
    }
 
    private void SearchBattleList() {
-      socket.Emit("findBattle");
+      if(isConnected) socket.Emit("findBattle");
    }
 
    private void SetBattleList(FoundBattleClass[] battlesArray) {
@@ -586,33 +586,15 @@ public class GameHandler : MonoBehaviour {
    // ====================================================================================
    // Coroutines
    // ====================================================================================
-   IEnumerator SetLoadPercentage(float maxTimer, float loadTimer, float refreshRate) {
-      
-      loadingPercentTMP.text = loadTimer.ToString();
-      yield return new WaitForSeconds(refreshRate);
-
-      // Timer still running
-      if(loadTimer < maxTimer) {
-         loadTimer++;
-         loadingBar.transform.localScale = new Vector3(loadBarScaleX(maxTimer, loadTimer), 1);
-         StartCoroutine(SetLoadPercentage(maxTimer, loadTimer, refreshRate));
-      }
-
-      // Time out
-      else {
-         yield return new WaitForSeconds(0.5f);
-
-         mainCamera.backgroundColor = skyBox;
-         loadingScreenUI.SetActive(false);
-         floor.SetActive(true);
-         mainMenu.SetActive(true);
-      }
-   }
-
    IEnumerator BattleCreated(string battleName) {
       yield return new WaitForSeconds(randomizeDelay);
 
       if(isBattleOnGoing) {
+
+         battleNameTMP.text = battleName;
+         SetNameText(playerSide, playerName);
+         battleUI.SetActive(true);
+         battleUIAnimator.SetTrigger("showUI");
 
          // Instantiate EnemyPlayer if exists
          if(enemyProps.Count != 0) {
@@ -632,17 +614,19 @@ public class GameHandler : MonoBehaviour {
          if(gameRandomize.enemyPlayer) StartSync("ServerSync");
       }
       else yield break;
+   }
 
-      yield return new WaitForSeconds(showPayerUIDelay);
+   IEnumerator ShowLoadingGear() {
 
-      if(isBattleOnGoing) {
-         
-         battleNameTMP.text = battleName;
-         SetNameText(playerSide, playerName);
-         battleUI.SetActive(true);
-         battleUIAnimator.SetTrigger("showUI");
-      }
-      else yield break;
+      yield return new WaitForSeconds(toggleGearDelay);
+      loadingGearsAnimator.SetTrigger("connect");
+   }
+
+   IEnumerator HideLoadingGear() {
+
+      loadingGearsAnimator.SetTrigger("hide");
+      yield return new WaitForSeconds(toggleGearDelay);
+      loadingScreen.SetActive(false);
    }
 
 
@@ -664,8 +648,7 @@ public class GameHandler : MonoBehaviour {
          SyncPackClass syncPack = new SyncPackClass(
             newStateIndex,
             localPlayerHandler.movePosX,
-            localPlayerHandler.moveSpeed,
-            localPlayerHandler.isWalking,
+            localPlayerHandler.playerSpeed,
             localPlayerHandler.isAttacking,
             localPlayerHandler.isProtecting
          );
@@ -679,12 +662,11 @@ public class GameHandler : MonoBehaviour {
       if(gameRandomize.enemyPlayer) {
 
          // Movements
-         enemyPlayerHandler.EnemyMovements(syncPack.movePosX, syncPack.moveSpeed);
+         enemyPlayerHandler.EnemyMovements(syncPack.movePosX, syncPack.playerSpeed);
 
          // Animations
          enemyPlayerHandler.SetEnemyAnim(
             syncPack.stateIndex,
-            syncPack.isWalking,
             syncPack.isAttacking,
             syncPack.isProtecting
          );

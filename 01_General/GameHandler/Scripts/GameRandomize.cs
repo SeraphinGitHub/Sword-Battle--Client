@@ -269,7 +269,8 @@ public class GameRandomize : MonoBehaviour {
    PlayerHandler playerHandler,
    GameObject playerUI,
    bool isLocalPlayer) {
-      yield return new WaitForSeconds(gameHandler.showPayerUIDelay);
+      // yield return new WaitForSeconds(gameHandler.showPayerUIDelay);
+      yield return new WaitForSeconds(0f);
 
       if(isLocalPlayer) {
          playerUI.SetActive(true);

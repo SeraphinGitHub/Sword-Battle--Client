@@ -5,66 +5,75 @@ using UnityEngine;
 public class PlayerMovements : MonoBehaviour {
 
 	// Private variables
-	private float forwardSpeed = 6f;
-	private float backwardSpeed = 4f;
-	private float playerSpeed;
+	private float forwardSpeed = 9f;
+	private float backwardSpeed = 6f;
 	
 	private Animator playerAnim;
-	private Vector3 movePosition;
-	private PlayerHandler playerHandler;
+	private PlayerHandler pH;
 
 
 	// ====================================================================================
 	// Start / Update
 	// ====================================================================================
 	private void Start() {
+		pH = GetComponent<PlayerHandler>();
 		playerAnim = GetComponent<Animator>();
-		playerHandler = GetComponent<PlayerHandler>();
 	}
 
+
+	// ******************************************
 	private void Update() {
-		transform.Translate(movePosition *playerSpeed *Time.deltaTime);
+		if(Input.GetKeyDown("q")) MoveLeft();
+		if(Input.GetKeyDown("d")) MoveRight();
+		if(Input.GetKeyUp("q") || Input.GetKeyUp("d")) StopMove();
 	}
+	// ******************************************
 	
+
 
 	// =========================================================================================================
 	// Public Methods
 	// =========================================================================================================
 	public void MoveLeft() {
 
-		movePosition = new Vector3(-1f, 0);
-		playerHandler.movePosX = -1f;
-		SetMoveAnim(backwardSpeed, "Left", "Backward");
-		SetMoveAnim(forwardSpeed, "Right", "Forward");
+		pH.movePosX = -1f;
+		SetMovementsAnim(backwardSpeed, "Left", "Backward");
+		SetMovementsAnim(forwardSpeed, "Right", "Forward");
 	}
 
 	public void MoveRight() {
 
-		movePosition = new Vector3(1f, 0);
-		playerHandler.movePosX = 1f;
-		SetMoveAnim(forwardSpeed, "Left", "Forward");
-		SetMoveAnim(backwardSpeed, "Right", "Backward");
+		pH.movePosX = 1f;
+		SetMovementsAnim(forwardSpeed, "Left", "Forward");
+		SetMovementsAnim(backwardSpeed, "Right", "Backward");
 	}
 
 	public void StopMove() {
 
-		movePosition = new Vector3(0, 0);
-		playerHandler.movePosX = 0;
-		playerHandler.isWalking = false;
-		playerHandler.IdleAnim();
+		pH.isWalking = false;
+		pH.movePosX = 0;
+		pH.playerMovePosition = new Vector3(pH.movePosX, 0);
+
+		pH.SetPlayerAnim("Body", "Idle");
+      pH.SetPlayerAnim("Sword", "Idle");
+      pH.SetPlayerAnim("Shield", "Idle");
 	}
 
 
 	// =========================================================================================================
 	// Private Methods
 	// =========================================================================================================
-	private void SetMoveAnim(float speed, string side, string animName) {
+	private void SetMovementsAnim(float speed, string side, string animName) {
+		if(pH.characterSide == side) {
 
-		if(side == playerHandler.characterSide) {
-			playerSpeed = speed;
-			playerHandler.moveSpeed = speed;
-			playerHandler.isWalking = true;
-			playerHandler.SetPlayerAnim("Walk", animName);
+			pH.isWalking = true;
+			pH.walkDirection = animName;
+			pH.playerSpeed = speed;
+			pH.playerMovePosition = new Vector3(pH.movePosX, 0);
+			
+			pH.SetPlayerAnim("Body", animName);
+			pH.SetPlayerAnim("Sword", animName);
+			pH.SetPlayerAnim("Shield", animName);
 		}
 	}
 }
