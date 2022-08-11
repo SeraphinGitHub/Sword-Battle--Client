@@ -99,31 +99,25 @@ public class GameRandomize : MonoBehaviour {
    public void InstantiatePlayer (List<string> propsList, bool isLocalPlayer) {
 
       GameObject playerInstance = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
-      GameObject playerUI = getGameObj(playerInstance, "Player_UI");
-      PlayerHandler playerHandler = playerInstance.GetComponent<PlayerHandler>();
+      PlayerHandler pH = playerInstance.GetComponent<PlayerHandler>();
 
       SetPlayerSprites(playerInstance);
       UnsetPlayer();
       SetPlayer(propsList);
 
-      playerHandler.SetCharacterSide(propsList[0]);
-      playerHandler.SetSwordColor(propsList[4]);
+      pH.SetCharacterSide(propsList[0]);
+      pH.SetSwordColor(propsList[4]);
 
-      playerUI.SetActive(false);
-      playerInstance.transform.position = new Vector3(playerHandler.spawnX *sidePos, playerHandler.spawnY, 0);
+      playerInstance.transform.position = new Vector3(pH.spawnX *sidePos, pH.spawnY, 0);
 
       if(isLocalPlayer) {
          localPlayer = playerInstance;
-         playerHandler.isLocalPlayer = true;
+         pH.isLocalPlayer = true;
       }
       else enemyPlayer = playerInstance;
-
-      // Show player UI after game entry
-      StartCoroutine(ShowPlayerUI(playerHandler, playerUI, isLocalPlayer));
    }
 
    public void DestroyAllPlayers() {
-
       if(localPlayer) Destroy(localPlayer);
       if(enemyPlayer) Destroy(enemyPlayer);
    }
@@ -259,22 +253,6 @@ public class GameRandomize : MonoBehaviour {
             leftHeadArray[i_Hair].SetActive(false);
             rightHeadArray[i_Hair].SetActive(false);
          }        
-      }
-   }
-
-   // ====================================================================================
-   // Coroutines
-   // ====================================================================================
-   IEnumerator ShowPlayerUI(
-   PlayerHandler playerHandler,
-   GameObject playerUI,
-   bool isLocalPlayer) {
-      // yield return new WaitForSeconds(gameHandler.showPayerUIDelay);
-      yield return new WaitForSeconds(0f);
-
-      if(isLocalPlayer) {
-         playerUI.SetActive(true);
-         playerHandler.playerUIAnimator.SetTrigger("showUI");
       }
    }
 

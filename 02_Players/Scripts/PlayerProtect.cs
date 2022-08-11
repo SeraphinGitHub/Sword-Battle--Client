@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class PlayerProtect : MonoBehaviour {
 
@@ -20,7 +21,7 @@ public class PlayerProtect : MonoBehaviour {
    // ====================================================================================
    // Public Methods
    // ====================================================================================
-	public void Protect() {
+	public void Ev_Protect(object sender, EventArgs e) {
       if(!pH.isProtecting && !pH.isAttacking) {
 
          pH.isProtecting = true;
@@ -30,7 +31,7 @@ public class PlayerProtect : MonoBehaviour {
       }
 	}
 
-   public void StopProtect() {
+   public void Ev_StopProtect(object sender, EventArgs e) {
       if(pH.isProtecting) {
 
          pH.isProtecting = false;

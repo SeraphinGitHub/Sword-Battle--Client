@@ -1,24 +1,29 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class PlayerAttack : MonoBehaviour {
 
+   // Public Variables
+   [Header("**Strike Attack Options**")]
+   public Vector2 strikePoint = new Vector2(0f, 0f);
+   public float strikeDamages = 220f;
+	public float strikeRange = 2.2f;
+	public float strikeDelay = 0.3f;
+   
+   [Header("**Estoc Attack Options**")]
+   public Vector2 estocPoint = new Vector2(0f, 0f);
+   public float estocDamages = 150f;
+	public float estocRange = 2.2f;
+	public float estocDelay = 0.3f;
+
+
    // Private Variables
 	private PlayerHandler pH;
-   private float attackAnimDelay = 0.4f;
+   private float animDoneDelay = 0.4f;
 
-
-	// public Transform attackPoint;
-
-   // public int strikeDamages = 20;
-   // public int estocDamages = 20;
-
-	// public float attackRange = 2.2f;
-	// public float attackAnimDuration = 1.5f;
-	// public float startAttackTime = 0.3f;
-	// public float timeBetweenAttack = 3.0f;
-	// private float endAttackTime;
+	private float endAttackTime;
 	
 
    // ====================================================================================
@@ -32,13 +37,36 @@ public class PlayerAttack : MonoBehaviour {
    // ====================================================================================
    // Public Methods
    // ====================================================================================
-	public void Attack(string attackType) {
+	public void Ev_StrikeAttack(object sender, EventArgs e) {
       if(!pH.isProtecting && !pH.isAttacking) {
             
          pH.isAttacking = true;
-         pH.SetPlayerAnim("Sword", attackType);
-         StartCoroutine(AttackTimeOut());
+         pH.SetPlayerAnim("Sword", "Strike");
+         StartCoroutine( AttackTimeOut() );
+         StartCoroutine( Damaging(strikePoint, strikeDamages, strikeRange, strikeDelay) );
       }
+	}
+
+   public void Ev_EstocAttack(object sender, EventArgs e) {
+      if(!pH.isProtecting && !pH.isAttacking) {
+            
+         pH.isAttacking = true;
+         pH.SetPlayerAnim("Sword", "Estoc");
+         StartCoroutine( AttackTimeOut() );
+         StartCoroutine( Damaging(estocPoint, estocDamages, estocRange, estocDelay) );
+      }
+	}
+
+
+   // ====================================================================================
+   // Private Methods
+   // ====================================================================================
+   private void OnDrawGizmosSelected() {
+		Gizmos.color = Color.red;
+		Gizmos.DrawWireSphere(strikePoint, strikeRange);
+
+      Gizmos.color = Color.green;
+		Gizmos.DrawWireSphere(estocPoint, estocRange);
 	}
 
 
@@ -46,9 +74,17 @@ public class PlayerAttack : MonoBehaviour {
    // Coroutines
    // ====================================================================================
    IEnumerator AttackTimeOut() {
-      yield return new WaitForSeconds(attackAnimDelay);
+      yield return new WaitForSeconds(animDoneDelay);
 
       if(pH.isAttacking) pH.isAttacking = false;
-      if(!pH.isWalking) pH.SetPlayerAnim("Sword", "Idle");
+      if(pH.isWalking) pH.SetPlayerAnim("Sword", pH.walkDirection);
+      else pH.SetPlayerAnim("Sword", "Idle");
+   }
+
+   IEnumerator Damaging(Vector2 point, float damages, float range, float delay) {
+      yield return new WaitForSeconds(delay);
+
+      Collider2D enemyPlayer = Physics2D.OverlapCircle(point, range);
+      enemyPlayer.GetComponent<PlayerHealth>().getDamage(damages);
    }
 }

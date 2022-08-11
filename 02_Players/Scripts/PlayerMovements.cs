@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class PlayerMovements : MonoBehaviour {
 
@@ -18,52 +19,39 @@ public class PlayerMovements : MonoBehaviour {
 	private void Start() {
 		pH = GetComponent<PlayerHandler>();
 		playerAnim = GetComponent<Animator>();
-	}
-
-
-	// ******************************************
-	private void Update() {
-		if(Input.GetKeyDown("q")) MoveLeft();
-		if(Input.GetKeyDown("d")) MoveRight();
-		if(Input.GetKeyUp("q") || Input.GetKeyUp("d")) StopMove();
-	}
-	// ******************************************
-	
+	}	
 
 
 	// =========================================================================================================
 	// Public Methods
 	// =========================================================================================================
-	public void MoveLeft() {
+	public void Ev_MoveLeft(object sender, EventArgs e) {
 
 		pH.movePosX = -1f;
-		SetMovementsAnim(backwardSpeed, "Left", "Backward");
-		SetMovementsAnim(forwardSpeed, "Right", "Forward");
+		SetMovementsAnim("Left", backwardSpeed, "Backward");
+		SetMovementsAnim("Right", forwardSpeed, "Forward");
 	}
 
-	public void MoveRight() {
+	public void Ev_MoveRight(object sender, EventArgs e) {
 
 		pH.movePosX = 1f;
-		SetMovementsAnim(forwardSpeed, "Left", "Forward");
-		SetMovementsAnim(backwardSpeed, "Right", "Backward");
+		SetMovementsAnim("Left", forwardSpeed, "Forward");
+		SetMovementsAnim("Right", backwardSpeed, "Backward");
 	}
 
-	public void StopMove() {
+	public void Ev_StopMove(object sender, EventArgs e) {
 
 		pH.isWalking = false;
 		pH.movePosX = 0;
 		pH.playerMovePosition = new Vector3(pH.movePosX, 0);
-
-		pH.SetPlayerAnim("Body", "Idle");
-      pH.SetPlayerAnim("Sword", "Idle");
-      pH.SetPlayerAnim("Shield", "Idle");
+		BodyPartAnim("Idle");
 	}
 
 
 	// =========================================================================================================
 	// Private Methods
 	// =========================================================================================================
-	private void SetMovementsAnim(float speed, string side, string animName) {
+	private void SetMovementsAnim(string side, float speed, string animName) {
 		if(pH.characterSide == side) {
 
 			pH.isWalking = true;
@@ -71,9 +59,14 @@ public class PlayerMovements : MonoBehaviour {
 			pH.playerSpeed = speed;
 			pH.playerMovePosition = new Vector3(pH.movePosX, 0);
 			
-			pH.SetPlayerAnim("Body", animName);
-			pH.SetPlayerAnim("Sword", animName);
-			pH.SetPlayerAnim("Shield", animName);
+			BodyPartAnim(animName);
 		}
+	}
+
+	private void BodyPartAnim(string animName) {
+		
+		pH.SetPlayerAnim("Body", animName);
+		if(!pH.isAttacking) pH.SetPlayerAnim("Sword", animName);
+		if(!pH.isProtecting) pH.SetPlayerAnim("Shield", animName);
 	}
 }

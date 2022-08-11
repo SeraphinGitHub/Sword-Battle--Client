@@ -1,13 +1,16 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
+using System;
 
 public class PlayerHandler : MonoBehaviour {
    
-   [Header("Player Animators")]
+   // Public Variables
+   [Header("**Player Animators**")]
    public Animator playerUIAnimator;
-   public Animator[] armAnimators = new Animator[2];
    public Animator[] swordAnimators = new Animator[2];
+   public Animator[] armAnimators = new Animator[2];
    public Animator[] shieldAnimators = new Animator[2];
    public Animator[] bodyAnimators = new Animator[2];
 
@@ -23,34 +26,58 @@ public class PlayerHandler : MonoBehaviour {
    [HideInInspector] public bool isAttacking;
    [HideInInspector] public bool isProtecting;
 
-   [HideInInspector] public string characterSide;
    [HideInInspector] public string walkDirection;
+   [HideInInspector] public string characterSide;
+
+   [HideInInspector] public int sideIndex;
    [HideInInspector] public Vector3 playerMovePosition;
    
 
    // Private Variables
+   private Animator[][] animatorsArray;
    private string[] sidesArray = new string[] {
       "Left",
       "Right",
    };
-   private string[] statesArray;
+   private string[] bodyPartArray = new string[] {
+      "Sword",
+      "Shield",
+      "Body",
+   };
+   private string[] statesArray = new string[] {
+      "Idle",
+      "Forward",
+      "Backward",
+      "Estoc",
+      "Strike",
+      "Defend",
+      "Protected",
+   };
+   private int[] currentStatesArray = new int[] {-1, -1, -1};
 
    private string playerState;
    private string enemyState;
-   private int sideIndex;
-   private int currentIndex;
    private float enemySpeed;
    
    private GameHandler gameHandler;
+   private GameObject optionsMenu;
    private Vector3 enemyMovePosition;
 
+   // ** StateArray **        ** StatesIndexArray **        ** BodyPartArray ** 
+   // 0 => "Idle",            0 => 0 to 6,                  0 => "Sword",
+   // 1 => "Forward",         1 => 0 to 6,                  1 => "Shield",
+   // 2 => "Backward",        2 => 0 to 6,                  2 => "Body",
+   // 3 => "Estoc",
+   // 4 => "Strike",
+   // 5 => "Defend",
+   // 6 => "Protected",
 
+   
    // ====================================================================================
    // Start / Update
    // ====================================================================================
    private void Start() {
       gameHandler = GameObject.Find("_GameHandler").GetComponent<GameHandler>();
-      statesArray = gameHandler.statesArray;
       enemyMovePosition = Vector3.zero;
       
       SetPlayerAnim("Body", "Idle");
@@ -70,10 +97,17 @@ public class PlayerHandler : MonoBehaviour {
    // ====================================================================================
    public void SetCharacterSide(string side) {
 
+      characterSide = side;
+
+      animatorsArray = new Animator[][] {
+         armAnimators,
+         shieldAnimators,
+         bodyAnimators,
+      };
+
       for(int i = 0; i < sidesArray.Length; i++) {
          if(side == sidesArray[i]) sideIndex = i;
       }
-      characterSide = side;
    }
 
    public void SetSwordColor(string animName) {
@@ -82,66 +116,35 @@ public class PlayerHandler : MonoBehaviour {
 
    public void SetPlayerAnim(string bodyPart, string animName) {
 
-      // Has to match the name of trigger in unity controller
+      // playerState ==> Has to match the name of trigger in unity controller
       playerState = characterSide+animName;
-      gameHandler.currentState = playerState;
 
-      // Walk or Idle
-      if(animName == "Idle"
-      || animName == "Forward"
-      || animName == "Backward") {
+      for(int i = 0; i < bodyPartArray.Length; i++) {
 
-         if(bodyPart == "Sword" && !isAttacking) armAnimators[sideIndex].SetTrigger(playerState);
-         if(bodyPart == "Shield" && !isProtecting) shieldAnimators[sideIndex].SetTrigger(playerState);
-         if(bodyPart == "Body") bodyAnimators[sideIndex].SetTrigger(playerState);
-      }
-
-      // Attack
-      if(animName == "Estoc"
-      || animName == "Strike") armAnimators[sideIndex].SetTrigger(playerState);      
-      
-      // Protect
-      if(animName == "Defend"
-      || animName == "Protected") shieldAnimators[sideIndex].SetTrigger(playerState);
-   }
-
-   public void SetEnemyAnim(int newIndex, bool attack, bool protect) {
-
-      // 0 => "Idle",
-      // 1 => "Forward",
-      // 2 => "Backward",
-      // 3 => "Estoc",
-      // 4 => "Strike",
-      // 5 => "Defend",
-      // 6 => "Protected",
-
-      if(newIndex != currentIndex) {
-         
-         currentIndex = newIndex;
-         enemyState = characterSide+statesArray[newIndex];
-
-         // Walk or Idle
-         if(newIndex == 0
-         || newIndex == 1
-         || newIndex == 2) {
-
-            if(!attack) armAnimators[sideIndex].SetTrigger(enemyState);
-            if(!protect) shieldAnimators[sideIndex].SetTrigger(enemyState);
-            bodyAnimators[sideIndex].SetTrigger(enemyState);
+         if(bodyPart == bodyPartArray[i]) {
+            gameHandler.statesIndexArray[i] = System.Array.IndexOf(statesArray, animName);
+            animatorsArray[i][sideIndex].SetTrigger(playerState);
          }
-         
-         // Attack
-         if(newIndex == 3
-         || newIndex == 4) armAnimators[sideIndex].SetTrigger(enemyState);
-         
-         // Protect
-         if(newIndex == 5
-         || newIndex == 6) shieldAnimators[sideIndex].SetTrigger(enemyState);
       }
    }
 
-   public void EnemyMovements(float movePosX, float playerSpeed) {
-      		
+   public void SetEnemyAnim(int[] statesIndexArray, bool attack, bool protect) {
+
+      for(int i = 0; i < bodyPartArray.Length; i++) {
+
+         int newStateIndex = statesIndexArray[i];
+         int currentStateIndex = currentStatesArray[i];
+
+         if(newStateIndex != currentStateIndex) {
+
+            currentStatesArray[i] = newStateIndex;
+            enemyState = characterSide+statesArray[newStateIndex];
+            animatorsArray[i][sideIndex].SetTrigger(enemyState);
+         }
+      }
+   }
+
+   public void EnemyMovements(float movePosX, float playerSpeed) {  		
       enemySpeed = playerSpeed;
       enemyMovePosition = new Vector3(movePosX, 0);
    }
