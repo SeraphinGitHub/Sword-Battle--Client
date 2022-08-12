@@ -32,6 +32,7 @@ public class GameHandler : MonoBehaviour {
    public GameObject connectingText;
    public GameObject connectedText;
    public RectTransform scrollContent;
+	public Transform[] healthSpritesArray = new Transform[2];
 
    [Header("**BattleList Options**")]
    public int firstBattleOffsetY = 20;
@@ -431,14 +432,18 @@ public class GameHandler : MonoBehaviour {
    }
 
    private void SwitchToBattle() {
+
       mainMenu.SetActive(false);
       findBattleMenu.SetActive(false);
+      optionsMenu.SetActive(false);
       battleUI.SetActive(true);
       messageUI.SetActive(true);
    }
 
    private void SwitchToMainMenu() {
+
       mainMenu.SetActive(true);
+      optionsMenu.SetActive(false);
       battleUI.SetActive(false);
       serverMessageTMP.gameObject.SetActive(false);
       countDownTMP.gameObject.SetActive(false);
@@ -554,10 +559,10 @@ public class GameHandler : MonoBehaviour {
          enemyPlayer.swordColor,
       };      
       
-      // Instantiate enemy player
       enemySide = enemyPlayer.side;
-      gameRandomize.InstantiatePlayer(joinPropsList, false);
 
+      // Instantiate enemy player
+      gameRandomize.InstantiatePlayer(joinPropsList, false);
       enemyHandler = gameRandomize.enemyPlayer.GetComponent<PlayerHandler>();
       SetNameText(enemyPlayer.side, enemyPlayer.name);
 
@@ -602,6 +607,10 @@ public class GameHandler : MonoBehaviour {
          SetBattleText(battleName);
          SetNameText(playerSide, playerName);
 
+         // Instantiate LocalPlayer
+         gameRandomize.InstantiatePlayer(playerProps, true);
+         InitEvents(gameRandomize.localPlayer);
+
          // Instantiate EnemyPlayer if exists
          if(enemyProps.Count != 0) {
 
@@ -609,10 +618,6 @@ public class GameHandler : MonoBehaviour {
             enemyHandler = gameRandomize.enemyPlayer.GetComponent<PlayerHandler>();
             SetNameText(enemySide, enemyName);
          }
-
-         // Instantiate LocalPlayer
-         gameRandomize.InstantiatePlayer(playerProps, true);
-         InitEvents(gameRandomize.localPlayer);
 
          // Start server sync
          if(gameRandomize.enemyPlayer) StartSync("ServerSync");
@@ -654,13 +659,13 @@ public class GameHandler : MonoBehaviour {
       localProtect = localPlayer.GetComponent<PlayerProtect>();
       
       // Init Triggers
-      tr_moveLeft += localMovements.Ev_MoveLeft;
-      tr_moveRight += localMovements.Ev_MoveRight;
-      tr_stopMove += localMovements.Ev_StopMove;
-      tr_strikeAttack += localAttack.Ev_StrikeAttack;
-      tr_estocAttack += localAttack.Ev_EstocAttack;
-      tr_protect += localProtect.Ev_Protect;
-      tr_stopProtect += localProtect.Ev_StopProtect;
+      tr_moveLeft = localMovements.Ev_MoveLeft;
+      tr_moveRight = localMovements.Ev_MoveRight;
+      tr_stopMove = localMovements.Ev_StopMove;
+      tr_strikeAttack = localAttack.Ev_StrikeAttack;
+      tr_estocAttack = localAttack.Ev_EstocAttack;
+      tr_protect = localProtect.Ev_Protect;
+      tr_stopProtect = localProtect.Ev_StopProtect;
    }
    
    public void TriggerEvents(string trigger) {

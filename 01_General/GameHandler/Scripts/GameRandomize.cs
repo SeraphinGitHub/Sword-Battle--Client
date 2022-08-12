@@ -105,16 +105,21 @@ public class GameRandomize : MonoBehaviour {
       UnsetPlayer();
       SetPlayer(propsList);
 
+      if(isLocalPlayer) {
+         localPlayer = playerInstance;
+         pH.isLocalPlayer = true;
+         playerInstance.layer = LayerMask.NameToLayer("Player");
+      }
+
+      else {
+         enemyPlayer = playerInstance;
+         playerInstance.layer = LayerMask.NameToLayer("Enemy");
+      }
+
       pH.SetCharacterSide(propsList[0]);
       pH.SetSwordColor(propsList[4]);
 
       playerInstance.transform.position = new Vector3(pH.spawnX *sidePos, pH.spawnY, 0);
-
-      if(isLocalPlayer) {
-         localPlayer = playerInstance;
-         pH.isLocalPlayer = true;
-      }
-      else enemyPlayer = playerInstance;
    }
 
    public void DestroyAllPlayers() {

@@ -8,7 +8,6 @@ public class PlayerHandler : MonoBehaviour {
    
    // Public Variables
    [Header("**Player Animators**")]
-   public Animator playerUIAnimator;
    public Animator[] swordAnimators = new Animator[2];
    public Animator[] armAnimators = new Animator[2];
    public Animator[] shieldAnimators = new Animator[2];
@@ -28,10 +27,10 @@ public class PlayerHandler : MonoBehaviour {
 
    [HideInInspector] public string walkDirection;
    [HideInInspector] public string characterSide;
-
    [HideInInspector] public int sideIndex;
+
    [HideInInspector] public Vector3 playerMovePosition;
-   
+   [HideInInspector] public GameHandler gameHandler;
 
    // Private Variables
    private Animator[][] animatorsArray;
@@ -59,18 +58,8 @@ public class PlayerHandler : MonoBehaviour {
    private string enemyState;
    private float enemySpeed;
    
-   private GameHandler gameHandler;
    private GameObject optionsMenu;
    private Vector3 enemyMovePosition;
-
-   // ** StateArray **        ** StatesIndexArray **        ** BodyPartArray ** 
-   // 0 => "Idle",            0 => 0 to 6,                  0 => "Sword",
-   // 1 => "Forward",         1 => 0 to 6,                  1 => "Shield",
-   // 2 => "Backward",        2 => 0 to 6,                  2 => "Body",
-   // 3 => "Estoc",
-   // 4 => "Strike",
-   // 5 => "Defend",
-   // 6 => "Protected",
 
    
    // ====================================================================================
@@ -97,17 +86,14 @@ public class PlayerHandler : MonoBehaviour {
    // ====================================================================================
    public void SetCharacterSide(string side) {
 
-      characterSide = side;
-
       animatorsArray = new Animator[][] {
          armAnimators,
          shieldAnimators,
          bodyAnimators,
       };
-
-      for(int i = 0; i < sidesArray.Length; i++) {
-         if(side == sidesArray[i]) sideIndex = i;
-      }
+      
+      characterSide = side;
+      sideIndex = System.Array.IndexOf(sidesArray, side);
    }
 
    public void SetSwordColor(string animName) {
@@ -115,6 +101,15 @@ public class PlayerHandler : MonoBehaviour {
    }
 
    public void SetPlayerAnim(string bodyPart, string animName) {
+
+      // ** StateArray **        ** StatesIndexArray **        ** BodyPartArray ** 
+      // 0 => "Idle",            0 => 0 to 6,                  0 => "Sword",
+      // 1 => "Forward",         1 => 0 to 6,                  1 => "Shield",
+      // 2 => "Backward",        2 => 0 to 6,                  2 => "Body",
+      // 3 => "Estoc",
+      // 4 => "Strike",
+      // 5 => "Defend",
+      // 6 => "Protected",
 
       // playerState ==> Has to match the name of trigger in unity controller
       playerState = characterSide+animName;

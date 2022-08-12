@@ -5,32 +5,46 @@ using System;
 
 public class PlayerAttack : MonoBehaviour {
 
+   public LayerMask enemyLayer;
+
    // Public Variables
    [Header("**Strike Attack Options**")]
-   public Vector2 strikePoint = new Vector2(0f, 0f);
+   public Transform[] strikePosArray = new Transform[2];
    public float strikeDamages = 220f;
-	public float strikeRange = 2.2f;
 	public float strikeDelay = 0.3f;
    
    [Header("**Estoc Attack Options**")]
-   public Vector2 estocPoint = new Vector2(0f, 0f);
+   public Transform[] estocPosArray = new Transform[2];
    public float estocDamages = 150f;
-	public float estocRange = 2.2f;
 	public float estocDelay = 0.3f;
 
 
    // Private Variables
-	private PlayerHandler pH;
    private float animDoneDelay = 0.4f;
+   private float strikeRange;
+   private float estocRange;
 
-	private float endAttackTime;
+	private Vector2 strikePoint;
+	private Vector2 estocPoint;
+	
+   private GameRandomize gameRandomize;
+   private PlayerHandler pH;
 	
 
    // ====================================================================================
 	// Start
 	// ====================================================================================
 	private void Start() {
+		gameRandomize = GameObject.Find("_GameHandler").GetComponent<GameRandomize>();
 		pH = GetComponent<PlayerHandler>();
+
+      Transform strikePos = strikePosArray[pH.sideIndex];
+      strikePoint = new Vector2(strikePos.position.x, strikePos.position.y);
+      strikeRange = strikePos.GetComponent<AttackPoint>().attackRange;
+
+      Transform estocPos = estocPosArray[pH.sideIndex];
+      estocPoint = new Vector2(estocPos.position.x, estocPos.position.y);
+      estocRange = estocPos.GetComponent<AttackPoint>().attackRange;
 	}
 
 
@@ -49,24 +63,12 @@ public class PlayerAttack : MonoBehaviour {
 
    public void Ev_EstocAttack(object sender, EventArgs e) {
       if(!pH.isProtecting && !pH.isAttacking) {
-            
+         
          pH.isAttacking = true;
          pH.SetPlayerAnim("Sword", "Estoc");
          StartCoroutine( AttackTimeOut() );
          StartCoroutine( Damaging(estocPoint, estocDamages, estocRange, estocDelay) );
       }
-	}
-
-
-   // ====================================================================================
-   // Private Methods
-   // ====================================================================================
-   private void OnDrawGizmosSelected() {
-		Gizmos.color = Color.red;
-		Gizmos.DrawWireSphere(strikePoint, strikeRange);
-
-      Gizmos.color = Color.green;
-		Gizmos.DrawWireSphere(estocPoint, estocRange);
 	}
 
 
@@ -84,7 +86,18 @@ public class PlayerAttack : MonoBehaviour {
    IEnumerator Damaging(Vector2 point, float damages, float range, float delay) {
       yield return new WaitForSeconds(delay);
 
-      Collider2D enemyPlayer = Physics2D.OverlapCircle(point, range);
-      enemyPlayer.GetComponent<PlayerHealth>().getDamage(damages);
+      Collider2D[] enemyPlayer = Physics2D.OverlapCircleAll(point, range, enemyLayer);
+      
+      foreach(var enemy in enemyPlayer) {
+         bool isLocalPlayer = enemy.GetComponent<PlayerHandler>().isLocalPlayer;
+
+         if(enemy && enemy != gameRandomize.localPlayer) {
+            enemy.GetComponent<PlayerHealth>().GetDamage(damages);
+            Debug.Log("Touch enemy !");
+         }
+      }
+
+
+      Debug.Log("Damaging");
    }
 }
