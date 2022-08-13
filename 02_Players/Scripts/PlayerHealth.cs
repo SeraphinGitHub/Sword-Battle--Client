@@ -7,14 +7,15 @@ public class PlayerHealth : MonoBehaviour {
 	
 	// Public Hidden Variables
 	[HideInInspector] public float health;
+	[HideInInspector] public bool isDamaged;
 
 	// Private Variables
 	private float healthMax = 1000f;
 	private int coeff = 100;
 
+	private Transform[] healthSpritesArray;
 	private GameHandler gameHandler;
 	private PlayerHandler pH;
-	private Transform[] healthSpritesArray;
 	
 
 	// ===========================================================================================================

@@ -19,11 +19,13 @@ public class PlayerHandler : MonoBehaviour {
    [HideInInspector] public float spawnY = 0.2f;
    [HideInInspector] public float movePosX;
    [HideInInspector] public float playerSpeed;
+   [HideInInspector] public float damagesValue;
 
    [HideInInspector] public bool isLocalPlayer;
    [HideInInspector] public bool isWalking;
    [HideInInspector] public bool isAttacking;
    [HideInInspector] public bool isProtecting;
+   [HideInInspector] public bool isEnemyDamaged;
 
    [HideInInspector] public string walkDirection;
    [HideInInspector] public string characterSide;

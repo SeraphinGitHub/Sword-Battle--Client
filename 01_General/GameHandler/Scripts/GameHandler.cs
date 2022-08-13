@@ -44,6 +44,8 @@ public class GameHandler : MonoBehaviour {
    public GameObject mainMenu;
    public GameObject findBattleMenu;
    public GameObject optionsMenu;
+   public GameObject optionsClickable;
+   public GameObject optionsClicked;
    public GameObject battleUI;
    public GameObject messageUI;
 
@@ -207,18 +209,17 @@ public class GameHandler : MonoBehaviour {
       SocketIO_Connect();
 
       // Show UI components
-      mainMenu.SetActive(true);
       loadingScreen.SetActive(true);
       connectingText.SetActive(true);
+      optionsClickable.SetActive(true);
       
       // Hide UI components
       connectedText.SetActive(false);
       findBattleMenu.SetActive(false);
-      optionsMenu.SetActive(false);
-      battleUI.SetActive(false);
+      optionsClicked.SetActive(false);
       messageUI.SetActive(false);
-      serverMessageTMP.gameObject.SetActive(false);
-      countDownTMP.gameObject.SetActive(false);
+
+      SwitchToMainMenu();
 
       gameRandomize = GetComponent<GameRandomize>();
    }
@@ -366,6 +367,7 @@ public class GameHandler : MonoBehaviour {
       isBattleOnGoing = false;
       gameRandomize.DestroyAllPlayers();
       enemyProps.Clear();
+      ResetCountDown();
 
       socket.Emit("EndBattle", battleID);
       battleID = "";
@@ -423,12 +425,16 @@ public class GameHandler : MonoBehaviour {
       endBattleCD--;
 
       if(endBattleCD  < 0) {
-         endBattleCD = baseEndBattleCD;
-         Destroy(gameRandomize.localPlayer);
-         
+         if(gameRandomize.localPlayer) Destroy(gameRandomize.localPlayer);
          if(!mainMenu.activeSelf) SwitchToMainMenu();
-         CancelInvoke();
+
+         ResetCountDown();
       }
+   }
+
+   private void ResetCountDown() {
+      endBattleCD = baseEndBattleCD;
+      CancelInvoke();
    }
 
    private void SwitchToBattle() {
@@ -436,6 +442,8 @@ public class GameHandler : MonoBehaviour {
       mainMenu.SetActive(false);
       findBattleMenu.SetActive(false);
       optionsMenu.SetActive(false);
+      optionsClickable.SetActive(true);
+      optionsClicked.SetActive(false);
       battleUI.SetActive(true);
       messageUI.SetActive(true);
    }
