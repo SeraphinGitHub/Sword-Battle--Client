@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GameRandomize : MonoBehaviour {
+public class InitPlayer : MonoBehaviour {
 
    [Header("Attached Prefabs")]
    public GameObject playerPrefab;
@@ -29,6 +29,8 @@ public class GameRandomize : MonoBehaviour {
    // Public Hidden Variables   
    [HideInInspector] public GameObject localPlayer;
    [HideInInspector] public GameObject enemyPlayer;
+   [HideInInspector] public PlayerHandler localPH;
+   [HideInInspector] public PlayerHandler enemyPH;
 
 
    // Private Variables
@@ -48,6 +50,7 @@ public class GameRandomize : MonoBehaviour {
    private GameObject[] tabardArray;
 
    private GameHandler gameHandler;
+   private SwordCollider localSwordCol;
 
    
    // ====================================================================================
@@ -99,22 +102,34 @@ public class GameRandomize : MonoBehaviour {
    public void InstantiatePlayer (List<string> propsList, bool isLocalPlayer) {
 
       GameObject playerInstance = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
-      PlayerHandler pH = playerInstance.GetComponent<PlayerHandler>();
+      PlayerHandler instPH = playerInstance.GetComponent<PlayerHandler>();
 
       SetPlayerSprites(playerInstance);
       UnsetPlayer();
       SetPlayer(propsList);
 
+      instPH.SetCharacterSide(propsList[0]);
+      instPH.SetSwordColor(propsList[4]);
+
+      // Local Player
       if(isLocalPlayer) {
          localPlayer = playerInstance;
-         pH.isLocalPlayer = true;
+         localPH = playerInstance.GetComponent<PlayerHandler>();
+         localPH.isLocalPlayer = true;
+
+         localSwordCol = localPH.swordColliders[localPH.sideIndex].GetComponent<SwordCollider>();
+         localSwordCol.localPH = localPH;
       }
-      else enemyPlayer = playerInstance;
 
-      pH.SetCharacterSide(propsList[0]);
-      pH.SetSwordColor(propsList[4]);
+      // Enemy Player
+      else {
+         enemyPlayer = playerInstance;
+         enemyPH = playerInstance.GetComponent<PlayerHandler>();
+         localSwordCol.enemyPlayer = playerInstance;
+         localSwordCol.enemyPH = enemyPH;
+      }
 
-      playerInstance.transform.position = new Vector3(pH.spawnX *sidePos, pH.spawnY, 0);
+      playerInstance.transform.position = new Vector3(instPH.spawnX *sidePos, instPH.spawnY, 0);
    }
 
    public void DestroyAllPlayers() {

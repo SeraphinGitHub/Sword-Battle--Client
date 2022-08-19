@@ -1,9 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using SocketIOClient;
 using SocketIOClient.Newtonsoft.Json;
-using UnityEngine.UI;
 using TMPro;
 using System;
 
@@ -11,18 +11,18 @@ public class GameHandler : MonoBehaviour {
    
    [Header("**Server Options**")]
    // ********** Dev **********
-      private int FPS = 10;
-      private string serverURL = "http://localhost:3000/";
-      private int endBattleCD = 3; // seconds
-      private int randomizeDelay = 1; // seconds
+      // private int FPS = 10;
+      // private string serverURL = "http://localhost:3000/";
+      // private int endBattleCD = 3; // seconds
+      // private int randomizeDelay = 1; // seconds
    // ********** Dev **********
 
 
    // ********** Build **********
-      // private int FPS = 40;
-      // private string serverURL = "http://sword-battle.herokuapp.com/";
-      // private int endBattleCD = 3; // seconds
-      // private int randomizeDelay = 1; // seconds
+      private int FPS = 40;
+      private string serverURL = "http://sword-battle.herokuapp.com/";
+      private int endBattleCD = 3; // seconds
+      private int randomizeDelay = 1; // seconds
    // ********** Build **********
 
 
@@ -32,7 +32,12 @@ public class GameHandler : MonoBehaviour {
    public GameObject connectingText;
    public GameObject connectedText;
    public RectTransform scrollContent;
-	public Transform[] healthSpritesArray = new Transform[2];
+
+   [Header("**Health Sprites Bar**")]
+   public Image[] healthSpritesArray = new Image[2];
+
+   [Header("**Shield Sprites Bar**")]
+	public Image[] shieldSpritesArray = new Image[2];
 
    [Header("**BattleList Options**")]
    public int firstBattleOffsetY = 20;
@@ -48,6 +53,8 @@ public class GameHandler : MonoBehaviour {
    public GameObject optionsClicked;
    public GameObject battleUI;
    public GameObject messageUI;
+   public GameObject damageTaken;
+   public GameObject damageDone;
 
    [Header("**Attached InputFields**")]
    public InputField playerNameField;
@@ -59,6 +66,8 @@ public class GameHandler : MonoBehaviour {
    public TextMeshProUGUI battleNameTMP;
    public TextMeshProUGUI leftPlayerNameTMP;
    public TextMeshProUGUI rightPlayerNameTMP;
+   public TextMeshProUGUI damageTakenTMP;
+   public TextMeshProUGUI damageDoneTMP;
 
 
    // Hidden Public Variables
@@ -79,6 +88,7 @@ public class GameHandler : MonoBehaviour {
    private bool isBattleOnGoing;
    private bool hasNewBattle;
    private float toggleGearDelay = 0.75f;
+   private float damageTextDelay = 1f;
 
    private string createdBattleName;
    private string joinedBattleName;
@@ -91,13 +101,9 @@ public class GameHandler : MonoBehaviour {
    private List<string> newBattles_IDList = new List<string>();
 
    private CreateBattleClass newBattle;
-   private GameRandomize gameRandomize;
-   private PlayerHandler enemyHandler;
-
-   private PlayerHandler localHandler;
-   private PlayerMovements localMovements;
-   private PlayerAttack localAttack;
-   private PlayerProtect localProtect;  
+   private InitPlayer initPlayer;
+   private PlayerHandler enemyPH;
+   private PlayerHandler localPH;
 
 
    // ====================================================================================
@@ -173,21 +179,18 @@ public class GameHandler : MonoBehaviour {
       public int[] statesIndexArray;
       public float movePosX;
       public float playerSpeed;
-      public bool isAttacking;
-      public bool isProtecting;
+      public float damagesValue;
 
       public SyncPackClass(
       int[] statesIndexArray,
       float movePosX,
       float playerSpeed,
-      bool isAttacking,
-      bool isProtecting) {
+      float damagesValue) {
 
          this.statesIndexArray = statesIndexArray;
          this.movePosX = movePosX;
          this.playerSpeed = playerSpeed;
-         this.isAttacking = isAttacking;
-         this.isProtecting = isProtecting;
+         this.damagesValue = damagesValue;
       }
    }
 
@@ -221,7 +224,7 @@ public class GameHandler : MonoBehaviour {
 
       SwitchToMainMenu();
 
-      gameRandomize = GetComponent<GameRandomize>();
+      initPlayer = GetComponent<InitPlayer>();
    }
 
    private void Start() {
@@ -319,7 +322,7 @@ public class GameHandler : MonoBehaviour {
 
          InitBattle();
 
-         playerProps = gameRandomize.RunRandomize(new List<string>());
+         playerProps = initPlayer.RunRandomize(new List<string>());
          playerSide = playerProps[0];
          swordColor = playerProps[4];
 
@@ -365,7 +368,7 @@ public class GameHandler : MonoBehaviour {
    public void LeaveBattle() {
 
       isBattleOnGoing = false;
-      gameRandomize.DestroyAllPlayers();
+      initPlayer.DestroyAllPlayers();
       enemyProps.Clear();
       ResetCountDown();
 
@@ -380,6 +383,11 @@ public class GameHandler : MonoBehaviour {
       SocketIO_Disconnect();
       isConnected = false;
       Application.Quit();
+   }
+
+   public void ToggleDmgText(TextMeshProUGUI damageTMP, float damagesValue) {
+
+      StartCoroutine( SetDmgText(damageTMP, damagesValue) );
    }
 
 
@@ -425,7 +433,7 @@ public class GameHandler : MonoBehaviour {
       endBattleCD--;
 
       if(endBattleCD  < 0) {
-         if(gameRandomize.localPlayer) Destroy(gameRandomize.localPlayer);
+         if(initPlayer.localPlayer) Destroy(initPlayer.localPlayer);
          if(!mainMenu.activeSelf) SwitchToMainMenu();
 
          ResetCountDown();
@@ -434,7 +442,7 @@ public class GameHandler : MonoBehaviour {
 
    private void ResetCountDown() {
       endBattleCD = baseEndBattleCD;
-      CancelInvoke();
+      StopSync();
    }
 
    private void SwitchToBattle() {
@@ -446,6 +454,16 @@ public class GameHandler : MonoBehaviour {
       optionsClicked.SetActive(false);
       battleUI.SetActive(true);
       messageUI.SetActive(true);
+      damageTaken.SetActive(true);
+      damageDone.SetActive(true);
+
+      damageTakenTMP.text = "";
+      damageDoneTMP.text = "";
+
+      for(int i = 0; i < healthSpritesArray.Length; i++) {
+         healthSpritesArray[i].fillAmount = 0f;
+         shieldSpritesArray[i].fillAmount = 0f;
+      }
    }
 
    private void SwitchToMainMenu() {
@@ -455,6 +473,8 @@ public class GameHandler : MonoBehaviour {
       battleUI.SetActive(false);
       serverMessageTMP.gameObject.SetActive(false);
       countDownTMP.gameObject.SetActive(false);
+      damageTaken.SetActive(false);
+      damageDone.SetActive(false);
    }
 
    private void SearchBattleList() {
@@ -537,7 +557,7 @@ public class GameHandler : MonoBehaviour {
       };
       
       // Randomize joinPlayer, out of hostPlayer props
-      playerProps = gameRandomize.RunRandomize(enemyProps);
+      playerProps = initPlayer.RunRandomize(enemyProps);
       playerSide = playerProps[0];
       swordColor = playerProps[4];
 
@@ -570,8 +590,8 @@ public class GameHandler : MonoBehaviour {
       enemySide = enemyPlayer.side;
 
       // Instantiate enemy player
-      gameRandomize.InstantiatePlayer(joinPropsList, false);
-      enemyHandler = gameRandomize.enemyPlayer.GetComponent<PlayerHandler>();
+      initPlayer.InstantiatePlayer(joinPropsList, false);
+      enemyPH = initPlayer.enemyPH;
       SetNameText(enemyPlayer.side, enemyPlayer.name);
 
       // Start server sync
@@ -581,7 +601,7 @@ public class GameHandler : MonoBehaviour {
    private void BattleEnded(LeavingPlayerClass leavingPlayer) {
 
       if(leavingPlayer.isHostPlayer) {
-         Destroy(gameRandomize.enemyPlayer);
+         Destroy(initPlayer.enemyPlayer);
 
          isBattleOnGoing = false;         
          enemyProps.Clear();
@@ -595,14 +615,14 @@ public class GameHandler : MonoBehaviour {
       }
 
       if(leavingPlayer.isJoinPlayer) {
-         Destroy(gameRandomize.enemyPlayer);
+         Destroy(initPlayer.enemyPlayer);
 
          serverMessageTMP.text = "Join player left battle !";
          serverMessageTMP.gameObject.SetActive(true);
          SetNameText(enemySide, "");
       }
    }
-
+   
 
    // ====================================================================================
    // Coroutines
@@ -616,19 +636,20 @@ public class GameHandler : MonoBehaviour {
          SetNameText(playerSide, playerName);
 
          // Instantiate LocalPlayer
-         gameRandomize.InstantiatePlayer(playerProps, true);
-         InitEvents(gameRandomize.localPlayer);
+         initPlayer.InstantiatePlayer(playerProps, true);
+         localPH = initPlayer.localPH;
+         InitEvents();
 
          // Instantiate EnemyPlayer if exists
          if(enemyProps.Count != 0) {
 
-            gameRandomize.InstantiatePlayer(enemyProps, false);
-            enemyHandler = gameRandomize.enemyPlayer.GetComponent<PlayerHandler>();
+            initPlayer.InstantiatePlayer(enemyProps, false);
+            enemyPH = initPlayer.enemyPH;
             SetNameText(enemySide, enemyName);
          }
 
          // Start server sync
-         if(gameRandomize.enemyPlayer) StartSync("ServerSync");
+         if(initPlayer.enemyPlayer) StartSync("ServerSync");
       }
       else yield break;
    }
@@ -646,6 +667,16 @@ public class GameHandler : MonoBehaviour {
       loadingScreen.SetActive(false);
    }
 
+   public IEnumerator SetDmgText(TextMeshProUGUI damageTMP, float damagesValue) {
+      
+      damageTaken.transform.position = initPlayer.localPlayer.transform.position;
+      damageDone.transform.position = initPlayer.enemyPlayer.transform.position;
+
+      damageTMP.text = damagesValue.ToString();
+      yield return new WaitForSeconds(damageTextDelay);
+      damageTMP.text = "";
+   }
+
 
    // ====================================================================================
    // Events
@@ -658,22 +689,15 @@ public class GameHandler : MonoBehaviour {
 	private event EventHandler tr_protect;
 	private event EventHandler tr_stopProtect;
    
-   private void InitEvents(GameObject localPlayer) {
+   private void InitEvents() {
 
-      // Init player Scripts
-      localHandler = localPlayer.GetComponent<PlayerHandler>();
-      localMovements = localPlayer.GetComponent<PlayerMovements>();
-      localAttack = localPlayer.GetComponent<PlayerAttack>();
-      localProtect = localPlayer.GetComponent<PlayerProtect>();
-      
-      // Init Triggers
-      tr_moveLeft = localMovements.Ev_MoveLeft;
-      tr_moveRight = localMovements.Ev_MoveRight;
-      tr_stopMove = localMovements.Ev_StopMove;
-      tr_strikeAttack = localAttack.Ev_StrikeAttack;
-      tr_estocAttack = localAttack.Ev_EstocAttack;
-      tr_protect = localProtect.Ev_Protect;
-      tr_stopProtect = localProtect.Ev_StopProtect;
+      tr_moveLeft = localPH.Ev_MoveLeft;
+      tr_moveRight = localPH.Ev_MoveRight;
+      tr_stopMove = localPH.Ev_StopMove;
+      tr_strikeAttack = localPH.Ev_StrikeAttack;
+      tr_estocAttack = localPH.Ev_EstocAttack;
+      tr_protect = localPH.Ev_Protect;
+      tr_stopProtect = localPH.Ev_StopProtect;
    }
    
    public void TriggerEvents(string trigger) {
@@ -697,14 +721,13 @@ public class GameHandler : MonoBehaviour {
 
    // Emit Sync
    public void ServerSync() {
-      if(gameRandomize.localPlayer && gameRandomize.enemyPlayer) {
+      if(initPlayer.localPlayer && initPlayer.enemyPlayer) {
          
          SyncPackClass syncPack = new SyncPackClass(
             statesIndexArray,
-            localHandler.movePosX,
-            localHandler.playerSpeed,
-            localHandler.isAttacking,
-            localHandler.isProtecting
+            localPH.movePosX,
+            localPH.playerSpeed,
+            localPH.damagesValue
          );
          
          socket.Emit("ServerSync", syncPack);
@@ -713,17 +736,12 @@ public class GameHandler : MonoBehaviour {
 
    // Receive Sync
    private void ReceiveServerSync(SyncPackClass syncPack) {
-      if(gameRandomize.enemyPlayer) {
+      if(initPlayer.enemyPlayer) {
 
-         // Movements
-         enemyHandler.EnemyMovements(syncPack.movePosX, syncPack.playerSpeed);
-
-         // Animations
-         enemyHandler.SetEnemyAnim(
-            syncPack.statesIndexArray,
-            syncPack.isAttacking,
-            syncPack.isProtecting
-         );
+         enemyPH.EnemyMovements(syncPack.movePosX, syncPack.playerSpeed);
+         enemyPH.SetEnemyAnim(syncPack.statesIndexArray);
+         enemyPH.CheckEnemyAttack(localPH, syncPack.damagesValue, syncPack.statesIndexArray);
       }
    }
+
 }
