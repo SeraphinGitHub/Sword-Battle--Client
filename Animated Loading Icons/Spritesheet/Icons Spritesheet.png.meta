@@ -1,0 +1,771 @@
+fileFormatVersion: 2
+guid: 0fd21678280ad9c47aa2d32baf438c5d
+TextureImporter:
+  fileIDToRecycleName:
+    21300000: spinner_square
+    21300002: spinner_square_thin
+    21300004: square
+    21300006: stopwatch_arrow
+    21300008: stopwatch
+    21300010: sword
+    21300012: dot
+    21300014: triangle
+    21300016: circle_half
+    21300018: circle_half_fading
+    21300020: circle_half_fading_2
+    21300022: circle_half_fading_3
+    21300024: circle_half_fading_4
+    21300026: circle_half_fading_thick
+    21300028: circle_half_fading_thick_2
+    21300030: circle_half_opacity
+    21300032: circle
+    21300034: circle_open
+    21300036: circle_quarter
+    21300038: circle_quarter_2
+    21300040: circle_quarter_2_opacity
+    21300042: circle_quarter_3
+    21300044: circle_quarter_opacity
+    21300046: cog
+    21300048: cog_inside
+    21300050: pickaxe
+    21300052: rectangle
+    21300054: rock
+    21300056: spinner_circle
+    21300058: spinner
+    21300060: spinner_rounded_corners
+    21300062: spinner_rounded_corners_thin
+  externalObjects: {}
+  serializedVersion: 9
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 1
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: -1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 16
+    mipBias: -100
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  platformSettings:
+  - serializedVersion: 2
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    androidETC2FallbackOverride: 0
+  - serializedVersion: 2
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 1
+    androidETC2FallbackOverride: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: spinner_square
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1706.6666
+        width: 341.33334
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.49999982}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8967c5691c719284d86349e0c6564a99
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: spinner_square_thin
+      rect:
+        serializedVersion: 2
+        x: 341
+        y: 1707
+        width: 340
+        height: 341
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aac281573ee76e549a9576f6addbab53
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: square
+      rect:
+        serializedVersion: 2
+        x: 682
+        y: 1706.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: efe190570aa5a6042812515df1cbd8cc
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stopwatch_arrow
+      rect:
+        serializedVersion: 2
+        x: 1027
+        y: 1709
+        width: 334
+        height: 336
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ea976ce2388a44f40b62e8daf13f252a
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stopwatch
+      rect:
+        serializedVersion: 2
+        x: 1364
+        y: 1706.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3e59802d601f1ea4eab83cd773129c2b
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: sword
+      rect:
+        serializedVersion: 2
+        x: 1705
+        y: 1706.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2a214c515cbd5ee40badf78726e21ad6
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: dot
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1365.6666
+        width: 341.33334
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0dd50a19718fcf24c9a8567e567522ab
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: triangle
+      rect:
+        serializedVersion: 2
+        x: 343
+        y: 1366
+        width: 339
+        height: 339
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6c4b72da1cab2a743b33c831a302c407
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_half
+      rect:
+        serializedVersion: 2
+        x: 685
+        y: 1368
+        width: 337
+        height: 336
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3fb91ed56f7c0ff45a80e280ed8119be
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_half_fading
+      rect:
+        serializedVersion: 2
+        x: 1023
+        y: 1365.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bf4fe2fb9400f5246a68d3947ef69070
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_half_fading_2
+      rect:
+        serializedVersion: 2
+        x: 1364
+        y: 1365.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 25ed3381375e52a4c9a985c94c1d7f18
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_half_fading_3
+      rect:
+        serializedVersion: 2
+        x: 1705
+        y: 1365.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 33b58f10eda099a46898055d9cadf484
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_half_fading_4
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1024.6666
+        width: 341.33334
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 99312d4c92f3120499c1908934baa58c
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_half_fading_thick
+      rect:
+        serializedVersion: 2
+        x: 341
+        y: 1024.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 14091f596f69ad84d8c9adf06b821b01
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_half_fading_thick_2
+      rect:
+        serializedVersion: 2
+        x: 682
+        y: 1024.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 78a65c43c32230040869c39475cb4177
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_half_opacity
+      rect:
+        serializedVersion: 2
+        x: 1026
+        y: 1026
+        width: 337
+        height: 338
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0b72e008561d31348a6a5f6821b69e38
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle
+      rect:
+        serializedVersion: 2
+        x: 1364
+        y: 1024.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1f24313413bbca640a1b4efc8b2bdd63
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_open
+      rect:
+        serializedVersion: 2
+        x: 1705
+        y: 1024.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d2e15604aa68fa54ba71a365ed2509a4
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_quarter
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 683.6666
+        width: 341.33334
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4e0124dfe5a49bd488f6672f75f0b2d5
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_quarter_2
+      rect:
+        serializedVersion: 2
+        x: 341
+        y: 683.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4ead9550929965d4fbbba1a62da81925
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_quarter_2_opacity
+      rect:
+        serializedVersion: 2
+        x: 682
+        y: 683.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f9597ad1ede905d43b0a48a711b41973
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_quarter_3
+      rect:
+        serializedVersion: 2
+        x: 1023
+        y: 683.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bfb7347bfbdf416479da8c5b8829853c
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: circle_quarter_opacity
+      rect:
+        serializedVersion: 2
+        x: 1364
+        y: 683.6666
+        width: 341.33337
+        height: 341.33337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a32558d0635459e448df5320acd93272
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: cog
+      rect:
+        serializedVersion: 2
+        x: 1708
+        y: 685
+        width: 338
+        height: 337
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7b505213a9bb1e24686a4e2766ab33ad
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: cog_inside
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 341
+        width: 341
+        height: 342
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 1, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2cd19df48f786f44abc688e1a5ec0ac5
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: pickaxe
+      rect:
+        serializedVersion: 2
+        x: 341
+        y: 342.66666
+        width: 341.33337
+        height: 341.33334
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4d075182d271e964682134814d52082e
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: rectangle
+      rect:
+        serializedVersion: 2
+        x: 682
+        y: 342.66666
+        width: 341.33337
+        height: 341.33334
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2bedee2dc05bc3a4eb80084f95a7886d
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: rock
+      rect:
+        serializedVersion: 2
+        x: 1023
+        y: 342.66666
+        width: 341.33337
+        height: 341.33334
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e7787334e6b1c9045a00c2fc90d7f028
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: spinner_circle
+      rect:
+        serializedVersion: 2
+        x: 1364
+        y: 342.66666
+        width: 341.33337
+        height: 341.33334
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f21889b08e8bdf241874f3a115310dc7
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: spinner
+      rect:
+        serializedVersion: 2
+        x: 1705
+        y: 343
+        width: 341
+        height: 338
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6263c8f81e32a514fa56aeba8b6a2b93
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: spinner_rounded_corners
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1.6666565
+        width: 341.33334
+        height: 341.33334
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 824d505dfadf0594484767fc0a6b912c
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: spinner_rounded_corners_thin
+      rect:
+        serializedVersion: 2
+        x: 341
+        y: 1.6666565
+        width: 341.33337
+        height: 341.33334
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 45e36b88f659aa64c91f3ef867e31cdb
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    physicsShape: []
+    bones: []
+    spriteID: 
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+  spritePackingTag: 
+  pSDRemoveMatte: 0
+  pSDShowRemoveMatteOption: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
