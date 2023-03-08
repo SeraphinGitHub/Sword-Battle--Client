@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 using System;
 using UnityEngine.UI;
 
@@ -8,40 +9,39 @@ public class PlayerHandler : MonoBehaviour {
 
    // Public Variables
    [Header("**Swords Colliders**")]
-   public GameObject[] swordColliders = new GameObject[2];
+   public GameObject[] swordColliders  = new GameObject[2];
    
    [Header("**Shields Colliders**")]
    public GameObject[] shieldColliders = new GameObject[2];
 
-   [Header("**Damages Values**")]
-   public float strikeDamages = 220f;
-   public float estocDamages = 150f;
-   public float strikeDelay = 0.25f;
-   public float estocDelay = 0.125f;
-
    [Header("**Player Animators**")]
-   public Animator[] swordAnimators = new Animator[2];
-   public Animator[] armAnimators = new Animator[2];
+   public Animator[] swordAnimators  = new Animator[2];
+   public Animator[] armAnimators    = new Animator[2];
    public Animator[] shieldAnimators = new Animator[2];
-   public Animator[] bodyAnimators = new Animator[2];
+   public Animator[] bodyAnimators   = new Animator[2];
  
 
    // Public Hidden Variables
+   [HideInInspector] public int damagesValue;
+   [HideInInspector] public int sidePos = 0;
+   [HideInInspector] public int playerHealth;
+   [HideInInspector] public int shieldHealth;
+
    [HideInInspector] public float spawnX = 6.5f;
    [HideInInspector] public float spawnY = 0.2f;
-   [HideInInspector] public float movePosX;
+   [HideInInspector] public float walkDirX;
    [HideInInspector] public float playerSpeed;
-   [HideInInspector] public float attackDelay;
-   [HideInInspector] public float damagesValue;
-   [HideInInspector] public float playerHealth;
-   [HideInInspector] public float shieldHealth;
 
+   [HideInInspector] public bool isDead;
+   [HideInInspector] public bool isFighting;
    [HideInInspector] public bool isLocalPlayer;
    [HideInInspector] public bool isWalking;
    [HideInInspector] public bool isAttacking;
    [HideInInspector] public bool isProtecting;
+   [HideInInspector] public bool isDamaging;
    [HideInInspector] public bool isEnemyDamaged;
 
+   [HideInInspector] public string winnerName;
    [HideInInspector] public string walkDirection;
    [HideInInspector] public string characterSide;
    [HideInInspector] public int sideIndex;
@@ -52,19 +52,21 @@ public class PlayerHandler : MonoBehaviour {
 
    // Private Variables
    private Animator[][] animatorsArray;
-   private Image[] healthSpritesArray;
-	private Image[] shieldSpritesArray;
+	private Animator[][] shieldSegmentsArray;
+	private Image[][]    healthSpritesArray;
+	private Image[][]    shieldLifeSpritesArray;
+	private Image[][]    shieldFluidSpritesArray;
 
-   private string[] sidesArray = new string[] {
+   private string[] sidesArray      = new string[] {
       "Left",
       "Right",
    };
-   private string[] bodyPartArray = new string[] {
+   private string[] bodyPartArray   = new string[] {
       "Sword",
       "Shield",
       "Body",
    };
-   private string[] statesArray = new string[] {
+   private string[] statesArray     = new string[] {
       "Idle",
       "Forward",
       "Backward",
@@ -78,63 +80,125 @@ public class PlayerHandler : MonoBehaviour {
    private string playerState;
    private string enemyState;
 
-	private int coeff = 100;
-   private float playerMaxHealth = 2000f;
-   private float shieldMaxHealth = 1000f;
-   private float forwardSpeed = 9f;
-	private float backwardSpeed = 6f;
+   // Health & Shield
+   private int    playerMaxHealth  = 2500;
+   private int    shieldMaxHealth;
+   private int    shieldSegHealth  = 250;
+   private int    initSegmentCount;
+   private float  segPopUpTimeOut  = 0.12f; // Lower ==> Faster
+   private bool   isPlayerReseted;
+   private bool[] isSegLostArray = new bool[] {
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+   };
+
+   // Health fluidity
+   private Image healthIMG;
+   private Image fluidHealthIMG;
+   private bool  isHealthRefuelable;
+   private bool  isHealthDrainable;
+   private bool  isHealthUpdatable;
+   private float red_HealthFluidSpeed       = 0.23f; // Higher ==> Faster
+   private float red_InitHealthFluidSpeed   = 1.2f;  // Higher ==> Faster
+   private float green_InitHealthFluidSpeed = 0.9f;  // Higher ==> Faster
+
+   // Shield fluidity
+   private Image fluidSegIMG;
+   private bool  isShieldDrainable;   
+   private float shieldPercent;
+   private float segOldFillAmount;
+   private float red_ShieldFluidSpeed = 1.8f; // Higher ==> Faster
+
+   // Movements
+   private bool  isMergePosX;
    private float enemySpeed;
-   private float attackAnimDelay = 0.4f;
+   private float forwardSpeed  = 11f;
+	private float backwardSpeed = 7.5f;
+
+   // Attack
+   private int   strikeDamages    = 220;
+   private int   estocDamages     = 150;
+	private float randDmgCoeff     = 0.25f; // 25% ==> +/- 12.5%
+   private float strikeDelay      = 0.15f;
+   private float estocDelay       = 0.05f;
+   private float attackAnimDelay  = 0.4f;
    private float protectAnimDelay = 0.125f;
-   private float currentDamages = 0f;
    
-	private Animator playerAnim;
-   private Vector3 enemyMovePosition;
+	private Animator   playerAnim;
+   private Vector3    enemyMovePosition;
+   private Vector3    enemyPosX;
    private GameObject gameHandlerObj;
    private GameObject optionsMenu;
    private GameObject swordCol;
    private GameObject shieldCol;
 
-   
-   // ====================================================================================
-   // Start / Update
-   // ====================================================================================
-   private void Start() {
-      gameHandlerObj = GameObject.Find("_GameHandler");
-      gameHandler = gameHandlerObj.GetComponent<GameHandler>();
-		playerAnim = GetComponent<Animator>();
 
-      swordCol = swordColliders[sideIndex];
+   // ===========================================================================================================
+   // Start() / Update()
+   // ===========================================================================================================
+   private void Start() {
+
+      // Get gamHandler script
+      gameHandlerObj = GameObject.Find("_GameHandler");
+      gameHandler    = gameHandlerObj.GetComponent<GameHandler>();
+		playerAnim     = GetComponent<Animator>();
+
+      AnchorGameObject anchor = GetComponent<AnchorGameObject>();
+      anchor.enabled = false;
+
+      // Set sword & shield colliders
+      swordCol  = swordColliders[sideIndex];
       shieldCol = shieldColliders[sideIndex];
       swordCol.SetActive(false);
       shieldCol.SetActive(false);
 
+      isDead     = false;
+      isFighting = true;
       enemyMovePosition = Vector3.zero;
 
-		healthSpritesArray = gameHandler.healthSpritesArray;
-		shieldSpritesArray = gameHandler.shieldSpritesArray;
+      // Set health & shield bars images arrays
+		healthSpritesArray      = gameHandler.healthSpritesArray;
+		shieldSegmentsArray     = gameHandler.shieldSegmentsArray;
+		shieldLifeSpritesArray  = gameHandler.shieldLifeSpritesArray;
+		shieldFluidSpritesArray = gameHandler.shieldFluidSpritesArray;
 
-		playerHealth = playerMaxHealth;
-		shieldHealth = shieldMaxHealth;
+      // Display health & shield bars
+      healthIMG      = healthSpritesArray[sideIndex][0];
+		fluidHealthIMG = healthSpritesArray[sideIndex][1];
 
-		HealthBarChange();
-      ShieldBarChange();
+      // Set health & shield values
+      InitPlayerStats();
 
+      // Set player start animation
       SetPlayerAnim("Body", "Idle");
       SetPlayerAnim("Sword", "Idle");
       SetPlayerAnim("Shield", "Idle");
    }
 
-   // For enemy player move sync
+   // Player & Enemy movements sync
    private void Update() {
-		if(isLocalPlayer) transform.Translate(playerMovePosition *playerSpeed *Time.deltaTime);
-      if(!isLocalPlayer) transform.Translate(enemyMovePosition *enemySpeed *Time.deltaTime);
+
+		if(isLocalPlayer)  transform.Translate(playerMovePosition *playerSpeed *Time.deltaTime);
+      if(!isLocalPlayer) transform.Translate(enemyMovePosition  *enemySpeed  *Time.deltaTime);
+
+      if(isMergePosX)    transform.position = Vector3.MoveTowards(transform.position, enemyPosX, enemySpeed *Time.deltaTime);
+      
+      UpdateBarFluidity();
 	}
 
 
-   // ====================================================================================
-   // Public Methods
-   // ====================================================================================
+
+   // **************************************************************************
+   // **********************                              **********************
+	//                             CHARACTER METHODS
+   // **********************                              **********************
+	// **************************************************************************
+
+   // === Public ===
    public void SetCharacterSide(string side) {
 
       animatorsArray = new Animator[][] {
@@ -151,8 +215,265 @@ public class PlayerHandler : MonoBehaviour {
       swordAnimators[sideIndex].SetTrigger(animName);
    }
 
-   // Player Anim
-   public void SetPlayerAnim(string bodyPart, string animName) {
+   public void ResetPosition() {
+      
+      transform.position = new Vector3(spawnX *sidePos, spawnY, 0);
+   }
+
+   public void ResetPlayer() {
+
+      isPlayerReseted = true;
+      ClearBars();
+      ResetPosition();
+
+      if(shieldHealth != shieldMaxHealth) LooseAllSegments();
+
+      for(int i = 0; i < isSegLostArray.Length; i++) {
+         isSegLostArray[i] = false;
+      };
+
+      InitPlayerStats();
+   }
+
+   public void ClearBars() {
+
+      // Clear health bars
+      playerHealth = 0;
+      HealthBarChange();
+      
+      // Clear shield segments
+      shieldHealth = 0;
+      ShieldBarChange(); // Loose all segments
+   }
+
+   public void PlayerRespawn() {
+      
+      ResetPlayer();
+   
+      // ****** Tempory ******
+      transform.localScale = new Vector3(10f, 10f, 1f);
+      // ****** Tempory ******
+      
+      isDead     = false;
+      isFighting = true;
+   }
+
+
+   // === Private ===
+   private void  InitPlayerStats() {
+
+      HealthBarChange(); // Refuel health bar
+
+      playerHealth    = playerMaxHealth;
+      shieldMaxHealth = isSegLostArray.Length *shieldSegHealth;      
+      shieldHealth    = shieldMaxHealth;
+
+      initSegmentCount = 0;
+      ShieldBarChange(); // Refuel all segments
+   }
+
+   private int   damageRnG(int baseDamage) {
+
+      int halfDmgRange = (int)Mathf.Round(baseDamage *randDmgCoeff /2);
+      int damageMin = baseDamage -halfDmgRange;
+      int damageMax = baseDamage +halfDmgRange;
+
+      return Random.Range(damageMin, damageMax);
+   }
+
+   private float healthPercent() {
+		return Mathf.Floor( (float)playerHealth / (float)playerMaxHealth *100 ) /100;
+	}
+
+	private void  HealthBarChange() {
+
+      // Empty healthBar
+      if(playerHealth == 0) {
+         healthIMG.fillAmount      = 0f;
+         fluidHealthIMG.fillAmount = 0f;
+         isHealthRefuelable        = true;
+      }
+
+      // Update healthBar
+      if(isHealthUpdatable) {
+		   healthIMG.fillAmount = healthPercent();
+         isHealthDrainable    = true;
+      }
+	}
+
+   private void  ShieldBarChange() {
+
+      for(int i = 0; i < isSegLostArray.Length; i++) {
+
+         Image lifeSegIMG = shieldLifeSpritesArray[sideIndex][i];
+         Animator segAnim = shieldSegmentsArray[sideIndex][i];
+
+         int shieldSeg_MinValue = shieldSegHealth *i;
+         int shieldSeg_MaxValue = shieldSegHealth *(i + 1);
+         
+         // Empty segment
+         if(shieldHealth <= shieldSeg_MinValue
+         && !isPlayerReseted
+         && !isSegLostArray[i]) {
+            
+            isSegLostArray[i] = true;
+            lifeSegIMG.fillAmount = 0f;
+            segAnim.SetTrigger("SegmentLoose");
+            StartCoroutine( DisabledShieldSegment(segAnim) );
+         }
+
+         // Full segment
+         else if(shieldHealth >= shieldSeg_MaxValue
+         && initSegmentCount < isSegLostArray.Length) {
+
+            fluidSegIMG = shieldFluidSpritesArray[sideIndex][i];
+            StartCoroutine( SetShieldSegments(segAnim, lifeSegIMG, fluidSegIMG) );
+         }
+
+         // Segment between 0% & 100%
+         else if(shieldHealth > shieldSeg_MinValue
+         && shieldHealth < shieldSeg_MaxValue) {
+            
+            shieldPercent = (float)(shieldHealth -shieldSeg_MinValue) /shieldSegHealth;
+            fluidSegIMG   = shieldFluidSpritesArray[sideIndex][i];
+            
+            lifeSegIMG.fillAmount = shieldPercent;
+            segOldFillAmount      = fluidSegIMG.fillAmount;
+
+            segAnim.SetTrigger("SegmentBlock");
+            isShieldDrainable = true;
+
+            if(shieldHealth <= shieldSegHealth) segAnim.SetTrigger("SegmentLast");
+         }
+      }
+	}
+
+   private void  LooseAllSegments() {
+
+      for(int i = 0; i < isSegLostArray.Length; i++) {
+         isSegLostArray[i] = true;
+         shieldLifeSpritesArray[sideIndex][i].fillAmount = 0f;
+         shieldSegmentsArray   [sideIndex][i].SetTrigger("SegmentLoose");
+      }
+   }
+
+   private void  UpdateBarFluidity() {
+
+      // Reduce shield segment red bar
+      if(isShieldDrainable) {
+         fluidSegIMG.fillAmount       -= red_ShieldFluidSpeed *Time.deltaTime;
+         if(fluidSegIMG.fillAmount    <= shieldPercent) isShieldDrainable = false;
+      }
+
+      // Reduce health red bar
+      if(isHealthDrainable) {
+         fluidHealthIMG.fillAmount    -= red_HealthFluidSpeed *Time.deltaTime;
+         if(fluidHealthIMG.fillAmount <= healthPercent()) isHealthDrainable = false;
+      }
+
+      // Refuel green & red health bars
+      if(isHealthRefuelable) {
+         fluidHealthIMG.fillAmount    += red_InitHealthFluidSpeed   *Time.deltaTime;
+         healthIMG.fillAmount         += green_InitHealthFluidSpeed *Time.deltaTime;
+
+         if(healthIMG.fillAmount      >= healthPercent()
+         && fluidHealthIMG.fillAmount >= healthPercent()) {
+
+            isHealthRefuelable = false;
+            isHealthUpdatable  = true;
+         }
+      }
+   }
+
+   private void  PlayerDeath() {
+
+      playerHealth = 0;
+      shieldHealth = 0;
+      ShieldBarChange(); // Loose all segments
+
+      isDead = true;
+      transform.localScale = Vector3.zero;
+
+      gameHandler.ToggleWinnerText(winnerName);
+      gameHandler.BattleLoose();
+   }
+
+
+
+   // **************************************************************************
+   // **********************                              **********************
+	//                               PLAYER METHODS
+   // **********************                              **********************
+	// **************************************************************************
+   
+   // === Events ===
+   public void Ev_MoveLeft    (object sender, EventArgs e) {
+
+      if(isFighting) {
+         walkDirX = -1f;
+         SetMovementsAnim("Left", backwardSpeed, "Backward");
+         SetMovementsAnim("Right", forwardSpeed, "Forward");
+      }
+	}
+
+	public void Ev_MoveRight   (object sender, EventArgs e) {
+
+      if(isFighting) {
+         walkDirX = 1f;
+         SetMovementsAnim("Left", forwardSpeed, "Forward");
+         SetMovementsAnim("Right", backwardSpeed, "Backward");
+      }
+	}
+
+	public void Ev_StopMove    (object sender, EventArgs e) {
+
+      if(isFighting) {
+         isWalking = false;
+         walkDirX = 0;
+         playerMovePosition = new Vector3(walkDirX, 0);
+         BodyPartAnim("Idle");
+      }
+	}
+
+   public void Ev_StrikeAttack(object sender, EventArgs e) {
+      if(isFighting && !isProtecting && !isAttacking) {
+         
+         SetPlayerAnim("Sword", "Strike");
+         StartCoroutine( AttackTimeOut(strikeDelay, strikeDamages) );
+      }
+	}
+
+   public void Ev_EstocAttack (object sender, EventArgs e) {
+      if(isFighting && !isProtecting && !isAttacking) {
+         
+         SetPlayerAnim("Sword", "Estoc");
+         StartCoroutine( AttackTimeOut(estocDelay, estocDamages) );
+      }
+	}
+   
+   public void Ev_Protect     (object sender, EventArgs e) {
+      if(isFighting && !isProtecting && shieldHealth != 0) {
+
+         isProtecting = true;
+         shieldCol.SetActive(true);
+         SetPlayerAnim("Shield", "Defend");
+         StartCoroutine(ProtectTimeOut());
+      }
+	}
+
+   public void Ev_StopProtect (object sender, EventArgs e) {
+      if(isProtecting) {
+
+         isProtecting = false;
+         shieldCol.SetActive(false);
+         if(!isWalking) SetPlayerAnim("Shield", "Idle");
+         else SetPlayerAnim("Shield", walkDirection);
+      }
+	}
+
+  
+   // === Private ===
+   private void SetPlayerAnim(string bodyPart, string animName) {
 
       // ** StateArray **        ** StatesIndexArray **        ** BodyPartArray ** 
       // 0 => "Idle",            0 => 0 to 6,                  0 => "Sword",
@@ -175,96 +496,87 @@ public class PlayerHandler : MonoBehaviour {
       }
    }
 
-   // Player Movements
-   public void Ev_MoveLeft(object sender, EventArgs e) {
+   private void SetMovementsAnim(string side, float speed, string animName) {
+		if(characterSide == side) {
 
-		movePosX = -1f;
-		SetMovementsAnim("Left", backwardSpeed, "Backward");
-		SetMovementsAnim("Right", forwardSpeed, "Forward");
+			isWalking = true;
+			walkDirection = animName;
+			playerSpeed = speed;
+			playerMovePosition = new Vector3(walkDirX, 0);
+			
+			BodyPartAnim(animName);
+		}
 	}
 
-	public void Ev_MoveRight(object sender, EventArgs e) {
-
-		movePosX = 1f;
-		SetMovementsAnim("Left", forwardSpeed, "Forward");
-		SetMovementsAnim("Right", backwardSpeed, "Backward");
-	}
-
-	public void Ev_StopMove(object sender, EventArgs e) {
-
-		isWalking = false;
-		movePosX = 0;
-		playerMovePosition = new Vector3(movePosX, 0);
-		BodyPartAnim("Idle");
-	}
-
-   // Player Attack
-   public void Ev_StrikeAttack(object sender, EventArgs e) {
-      if(!isProtecting && !isAttacking) {
-         
-         SetPlayerAnim("Sword", "Strike");
-         damagesValue = strikeDamages;
-         StartCoroutine( AttackTimeOut(strikeDelay) );
-      }
-	}
-
-   public void Ev_EstocAttack(object sender, EventArgs e) {
-      if(!isProtecting && !isAttacking) {
-         
-         SetPlayerAnim("Sword", "Estoc");
-         damagesValue = estocDamages;
-         StartCoroutine( AttackTimeOut(estocDelay) );
-      }
-	}
-
-   // Player Protect
-   public void Ev_Protect(object sender, EventArgs e) {
-      if(!isProtecting && !isAttacking) {
-
-         isProtecting = true;
-         shieldCol.SetActive(true);
-         SetPlayerAnim("Shield", "Defend");
-         StartCoroutine(ProtectTimeOut());
-      }
-	}
-
-   public void Ev_StopProtect(object sender, EventArgs e) {
-      if(isProtecting) {
-
-         isProtecting = false;
-         shieldCol.SetActive(false);
-         if(!isWalking) SetPlayerAnim("Shield", "Idle");
-         else SetPlayerAnim("Shield", walkDirection);
-      }
-	}
-
-   // Player Health / Shield
-   public void GetDamageHealth(float damagesValue) {
+	private void BodyPartAnim(string animName) {
 		
-      if(playerHealth >= damagesValue) playerHealth -= damagesValue;
-      else playerHealth = 0;
-		
-      HealthBarChange();
-      gameHandler.TriggerEvents("DamageDone");
+		SetPlayerAnim("Body", animName);
+		if(!isAttacking) SetPlayerAnim("Sword", animName);
+		if(!isProtecting) SetPlayerAnim("Shield", animName);
 	}
 
-   public void GetDamageShield(float damagesValue) {
 
-		if(shieldHealth >= damagesValue) shieldHealth -= damagesValue;
+   // === Coroutines ===
+   IEnumerator AttackTimeOut(float damagingDelay, int baseDamage) {
+
+      swordCol.SetActive(true);
+      isAttacking  = true;
+
+      yield return new WaitForSeconds(damagingDelay);
+
+      isDamaging   = true;
+      damagesValue = damageRnG(baseDamage);
+
+      yield return new WaitForSeconds(attackAnimDelay -damagingDelay);
+
+      damagesValue   = 0;
+      isAttacking    = false;
+      isDamaging     = false;
+      isEnemyDamaged = false;
+      swordCol.SetActive(false);
+
+      if(isWalking) SetPlayerAnim("Sword", walkDirection);
+      else SetPlayerAnim("Sword", "Idle");
+   }
+
+   IEnumerator ProtectTimeOut() {
+      yield return new WaitForSeconds(protectAnimDelay);
       
-      else {
-         float unAbsorbedDamages = damagesValue -shieldHealth;
-         GetDamageHealth(unAbsorbedDamages);
-         shieldHealth = 0;
+      if(isProtecting) SetPlayerAnim("Shield", "Protected");
+      else yield break;
+   }
 
-         gameHandler.TriggerEvents("StopProtect");
-      }
+   IEnumerator DisabledShieldSegment(Animator segAnim){
 
-      ShieldBarChange();
-	}
+      yield return new WaitForSeconds(1f);
+      segAnim.SetTrigger("SegmentReset");
+      
+      yield return new WaitForSeconds(0.1f);
+      segAnim.gameObject.SetActive(false);
+   }
 
+   IEnumerator SetShieldSegments(Animator segAnim, Image lifeSegIMG, Image fluidSegIMG) {
 
-   // Enemy Anim / Movements / Attack
+      initSegmentCount++;
+
+      yield return new WaitForSeconds(segPopUpTimeOut *initSegmentCount);
+
+      lifeSegIMG.fillAmount  = 1f;
+      fluidSegIMG.fillAmount = 1f;
+      segAnim.SetTrigger("SegmentGet");
+
+      if(isPlayerReseted && initSegmentCount == isSegLostArray.Length) isPlayerReseted = false;
+   }
+
+   
+
+   // **************************************************************************
+   // **********************                              **********************
+	//                                ENEMY METHODS
+   // **********************                              **********************
+	// **************************************************************************
+
+   // === Public ===
    public void SetEnemyAnim(int[] statesIndexArray) {
 
       for(int i = 0; i < bodyPartArray.Length; i++) {
@@ -281,113 +593,85 @@ public class PlayerHandler : MonoBehaviour {
       }
    }
 
-   public void EnemyMovements(float movePosX, float playerSpeed) {  		
-      enemySpeed = playerSpeed;
-      enemyMovePosition = new Vector3(movePosX, 0);
-   }
+   public void EnemyMovements(float walkDirX, float newPosX) {
+      if(isFighting) {
 
-   public void CheckEnemyAttack(PlayerHandler localPH, float newDamages, int[] statesIndexArray) {
+         // Move Left
+         if(walkDirX == -1) {
+            isMergePosX = false;
 
-      // ** StateArray **        ** StatesIndexArray **        ** BodyPartArray ** 
-      // 3 => "Estoc",           0 => 0 to 6,                  0 => "Sword",
-      // 4 => "Strike",
+            if(sidePos == -1) enemySpeed = backwardSpeed; // Left  side
+            if(sidePos ==  1) enemySpeed = forwardSpeed;  // Right side
+         }
 
-      if(currentDamages != newDamages) {
-         currentDamages = newDamages;
+         // Move Right
+         if(walkDirX ==  1) {
+            isMergePosX = false;
 
-         if(statesIndexArray[0] == 3) StartCoroutine(
-            DamageEnemy(estocDelay, localPH, newDamages)
-         );
+            if(sidePos == -1) enemySpeed = forwardSpeed;  // Left  side
+            if(sidePos ==  1) enemySpeed = backwardSpeed; // Right side
+         }
 
-         if(statesIndexArray[0] == 4) StartCoroutine(
-            DamageEnemy(strikeDelay, localPH, newDamages)
-         );      
+         if(walkDirX == 0) {
+            isMergePosX = true;
+            enemyPosX = new Vector3(newPosX, transform.position.y);
+         }
+
+         enemyMovePosition = new Vector3(walkDirX, 0);
       }
    }
-
-
-   // ===========================================================================================================
-	// Private Methods
-	// ===========================================================================================================
-   private void SetMovementsAnim(string side, float speed, string animName) {
-		if(characterSide == side) {
-
-			isWalking = true;
-			walkDirection = animName;
-			playerSpeed = speed;
-			playerMovePosition = new Vector3(movePosX, 0);
-			
-			BodyPartAnim(animName);
-		}
-	}
-
-	private void BodyPartAnim(string animName) {
+   
+   public void GetDamageHealth(int damagesValue) {
 		
-		SetPlayerAnim("Body", animName);
-		if(!isAttacking) SetPlayerAnim("Sword", animName);
-		if(!isProtecting) SetPlayerAnim("Shield", animName);
+      if(playerHealth > damagesValue) playerHealth -= damagesValue;
+      else PlayerDeath();
+		
+      gameHandler.SetDamageDoneTMP(damagesValue);
+      HealthBarChange();
 	}
 
-   private float healthPercent() {
-		return Mathf.Floor(playerHealth / playerMaxHealth *coeff) /coeff;
+   public void GetDamageShield(int damagesValue) {
+
+		if(shieldHealth > damagesValue) shieldHealth -= damagesValue;  
+      else {
+         int unAbsorbedDamages = damagesValue -shieldHealth;
+         GetDamageHealth(unAbsorbedDamages);
+         shieldHealth = 0;
+      }
+
+      gameHandler.SetDamageBlockedTMP(damagesValue);
+      ShieldBarChange(); // Change Enemy shield bar value
 	}
 
-	private void HealthBarChange() {
-		healthSpritesArray[sideIndex].fillAmount = healthPercent();
-		if(healthPercent() <= 0 ) healthSpritesArray[sideIndex].fillAmount = healthPercent();
-	}
 
+   // === Coroutines ===
+   public void UpdatePlayerHealth(int newPlayerHealth, int newShieldHealth) {
 
-   // ***************************
-   private float shieldPercent() {
-		return Mathf.Floor(shieldHealth / shieldMaxHealth *coeff) /coeff;
-	}
+      // Player Health
+      if(playerHealth != newPlayerHealth) {
+         int healthDamages = playerHealth -newPlayerHealth;
 
-   private void ShieldBarChange() {
-		shieldSpritesArray[sideIndex].fillAmount = shieldPercent();
-		if(shieldPercent() <= 0 ) shieldSpritesArray[sideIndex].fillAmount = shieldPercent();
-	}
-   // ***************************
+         gameHandler.SetDamageTakenTMP(healthDamages);
+         playerHealth = newPlayerHealth;
 
+         if(playerHealth <= 0) PlayerDeath();
 
-   // ====================================================================================
-   // Coroutines
-   // ====================================================================================
-   IEnumerator AttackTimeOut(float delay) {
+         HealthBarChange();
+         Vibration.Vibrate(150);
+      }
 
-      attackDelay = delay;
-      swordCol.SetActive(true);
+      // Player Shield
+      if(shieldHealth != newShieldHealth) {
+         int shieldDamages = shieldHealth -newShieldHealth;
 
-      yield return new WaitForSeconds(delay);
+         gameHandler.SetDamageBlockedTMP(shieldDamages);
+         shieldHealth = newShieldHealth;
 
-      isAttacking = true;
+         if(shieldHealth <= 0) gameHandler.TriggerEvents("StopProtect");
 
-      yield return new WaitForSeconds(attackAnimDelay -delay);
-
-      damagesValue = 0f;
-      isAttacking = false;
-      isEnemyDamaged = false;
-      swordCol.SetActive(false);
-      
-      if(isWalking) SetPlayerAnim("Sword", walkDirection);
-      else SetPlayerAnim("Sword", "Idle");
-   }
-
-   IEnumerator ProtectTimeOut() {
-      yield return new WaitForSeconds(protectAnimDelay);
-      
-      if(isProtecting) SetPlayerAnim("Shield", "Protected");
-      else yield break;
-   }
-
-   public IEnumerator DamageEnemy(float attackDelay, PlayerHandler localPH, float newDamages) {
-      yield return new WaitForSeconds(attackDelay);
-
-      if(!localPH.isProtecting) localPH.GetDamageHealth(newDamages);
-      else localPH.GetDamageShield(newDamages);
-
-      // Damage Taken
-      gameHandler.ToggleDmgText(gameHandler.damageTakenTMP, -newDamages);
+         ShieldBarChange(); // Change Player shield bar value
+         Vibration.Vibrate(250);
+      }
    }
 
 }

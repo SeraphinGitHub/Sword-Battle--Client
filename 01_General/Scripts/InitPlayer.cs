@@ -101,8 +101,9 @@ public class InitPlayer : MonoBehaviour {
 
    public void InstantiatePlayer (List<string> propsList, bool isLocalPlayer) {
 
-      GameObject playerInstance = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
-      PlayerHandler instPH = playerInstance.GetComponent<PlayerHandler>();
+      GameObject playerInstance   = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
+      PlayerHandler instPH        = playerInstance.GetComponent<PlayerHandler>();
+      AnchorGameObject instAnchor = playerInstance.GetComponent<AnchorGameObject>();
 
       SetPlayerSprites(playerInstance);
       UnsetPlayer();
@@ -125,11 +126,19 @@ public class InitPlayer : MonoBehaviour {
       else {
          enemyPlayer = playerInstance;
          enemyPH = playerInstance.GetComponent<PlayerHandler>();
+
          localSwordCol.enemyPlayer = playerInstance;
          localSwordCol.enemyPH = enemyPH;
+
+         localPH.winnerName = gameHandler.enemyName;
+         enemyPH.winnerName = gameHandler.playerName;
       }
 
-      playerInstance.transform.position = new Vector3(instPH.spawnX *sidePos, instPH.spawnY, 0);
+      instPH.sidePos = sidePos;
+      float spawnSide = instPH.spawnX *sidePos;
+      
+      // playerInstance.transform.position = new Vector3(spawnSide, instPH.spawnY);
+      instAnchor.anchorOffset = new Vector3(spawnSide, instAnchor.anchorOffset.y);
    }
 
    public void DestroyAllPlayers() {
@@ -141,6 +150,15 @@ public class InitPlayer : MonoBehaviour {
    // ====================================================================================
    // Private Methods
    // ====================================================================================
+   private delegate void loopDelegate(int index);
+
+   private void cycleList(List<string> propsList, loopDelegate callback) {
+
+      for(int i = 0; i < propsList.Count; i++) {
+         callback(i);
+      }
+   }
+   
    private GameObject getGameObj(GameObject player, string name) {
       return player.transform.Find(name).gameObject;
    }
@@ -220,55 +238,51 @@ public class InitPlayer : MonoBehaviour {
    }
 
    private void SetPlayer(List<string> propsList) {
-      
+
       // Set player side
-      for(int i_Side = 0; i_Side < sideList.Count; i_Side++) {
-         if(propsList[0] == sideList[i_Side]) {
+      cycleList(sideList, (int i_Side) => {
+         if(propsList[0] != sideList[i_Side]) return;
 
-            spritesArray[i_Side].SetActive(true);
-            sidePos = 2 *i_Side -1;
+         spritesArray[i_Side].SetActive(true);
+         sidePos = 2 *i_Side -1;
 
+         // Set player hair
+         cycleList(hairStyleList, (int i_Hair) => {
+            if(propsList[1] != hairStyleList[i_Hair]) return;
 
-            // Set player hair
-            for(int i_Hair = 0; i_Hair < hairStyleList.Count; i_Hair++) {
-               if(propsList[1] == hairStyleList[i_Hair]) {
+            leftHeadArray[i_Hair].SetActive(true);
+            rightHeadArray[i_Hair].SetActive(true);
+            
+            // Set player hair & tabard color
+            cycleList(hairColorList, (int i_Color) => {
 
-                  leftHeadArray[i_Hair].SetActive(true);
-                  rightHeadArray[i_Hair].SetActive(true);
-                  
-
-                  // Set player hair & tabard color
-                  for(int i_Color = 0; i_Color < hairColorList.Count; i_Color++) {
-
-                     // Hair color
-                     if(propsList[2] == hairColorList[i_Color]) {
-                        leftHairStyleArray[i_Hair].GetComponent<SpriteRenderer>().color = hairColorsArray[i_Color];
-                        rightHairStyleArray[i_Hair].GetComponent<SpriteRenderer>().color = hairColorsArray[i_Color];
-                     }
-
-                     // Tabard color 
-                     if(propsList[3] == tabardColorList[i_Color]) {
-                        tabardArray[i_Side].GetComponent<SpriteRenderer>().color = tabardColorsArray[i_Color];
-                     }
-                  }
+               // Hair color
+               if(propsList[2] == hairColorList[i_Color]) {
+                  leftHairStyleArray[i_Hair].GetComponent<SpriteRenderer>().color = hairColorsArray[i_Color];
+                  rightHairStyleArray[i_Hair].GetComponent<SpriteRenderer>().color = hairColorsArray[i_Color];
                }
-            }
-         }
-      }
+
+               // Tabard color 
+               if(propsList[3] == tabardColorList[i_Color]) {
+                  tabardArray[i_Side].GetComponent<SpriteRenderer>().color = tabardColorsArray[i_Color];
+               }
+            });
+         });
+      });
    }
 
    private void UnsetPlayer() {
 
       // Hide Player Sprites
-      for(int i_Side = 0; i_Side < sideList.Count; i_Side++) {
+      cycleList(sideList, (int i_Side) => {
          spritesArray[i_Side].SetActive(false);
 
          // Hide Player Head
-         for(int i_Hair = 0; i_Hair < hairStyleList.Count; i_Hair++) {
+         cycleList(hairStyleList, (int i_Hair) => {
             leftHeadArray[i_Hair].SetActive(false);
             rightHeadArray[i_Hair].SetActive(false);
-         }        
-      }
+         });
+      });
    }
 
 }

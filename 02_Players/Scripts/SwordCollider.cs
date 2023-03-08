@@ -31,10 +31,10 @@ public class SwordCollider : MonoBehaviour {
 	// ===========================================================================================================
    private void OnTriggerEnter2D(Collider2D col) {
 
-      if(localPH.isAttacking && enemyPlayer != null) {
+      if(localPH.isDamaging && enemyPlayer != null) {
          if(col.gameObject == enemyPlayer
          || col.gameObject == enemyPH.shieldColliders[enemyPH.sideIndex]) {
-
+            
             DamagingPlayer();
          }
 	   }
@@ -45,11 +45,18 @@ public class SwordCollider : MonoBehaviour {
       if(!localPH.isEnemyDamaged) {
          localPH.isEnemyDamaged = true;
 
-         if(!enemyPH.isProtecting) enemyPH.GetDamageHealth(localPH.damagesValue);
-         else enemyPH.GetDamageShield(localPH.damagesValue);
-         
-         // Damage Done
-         gameHandler.ToggleDmgText(gameHandler.damageDoneTMP, localPH.damagesValue);
+         if(!enemyPH.isDead) {
+            
+            if(!enemyPH.isProtecting) {
+               enemyPH.GetDamageHealth(localPH.damagesValue);
+            }
+
+            else {
+               enemyPH.GetDamageShield(localPH.damagesValue);
+            }
+
+            gameHandler.SendDamageToEnemy();
+         }
       }
    }
 

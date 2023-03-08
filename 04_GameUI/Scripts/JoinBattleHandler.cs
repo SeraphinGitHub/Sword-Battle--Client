@@ -12,6 +12,9 @@ public class JoinBattleHandler : MonoBehaviour {
     }
     
     public void SetBattleID() {
+
+        gameHandler.VibrateButton();
+
         string battleID = transform.Find("BattleID").GetComponent<TMP_Text>().text;
         string battleName = transform.Find("BattleName").GetComponent<TMP_Text>().text;
 
