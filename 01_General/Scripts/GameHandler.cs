@@ -11,8 +11,9 @@ public class GameHandler : MonoBehaviour {
    
    // ********** Server Options **********
       private int    FPS = 40;
-      // private string serverURL = "http://localhost:3000/";
-      private string serverURL = "https://sword-battle.onrender.com";
+      // private string baseURL = "http://localhost:3000/";
+      private string baseURL = "https://sword-battle.onrender.com";
+      private string serverAdress;
    // ********** Server Options **********
 
 
@@ -66,6 +67,7 @@ public class GameHandler : MonoBehaviour {
    [Header("**Attached InputFields**")]
    public InputField playerNameField;
    public InputField battleNameField;
+   public InputField serverAdressField;
 
    [Header("**Attatched TexMeshPro**")]
    public TextMeshProUGUI serverMessageTMP;
@@ -128,9 +130,10 @@ public class GameHandler : MonoBehaviour {
    private int firstBattleOffsetY      = 15;
    private int battleOffsetY           = 177; // JoinBtn Height + OffsetY
 
-   private int connectTimer   = 0;
+   private int connectTime    = 0;
+   private int connectMaxTime = 40; // seconds
    private int loginBarDelay  = 3; // seconds
-   private int randomizeDelay = 1; // seconds
+   private int randomizeDelay = 0; // seconds
    private int respawnTime    = 5; // seconds
    private int endBattleCD    = 3; // seconds
 
@@ -263,7 +266,7 @@ public class GameHandler : MonoBehaviour {
       }
    }
    
-
+   
    // ===========================================================================================================
    // Awake() / Start() / Update()
    // ===========================================================================================================
@@ -271,9 +274,10 @@ public class GameHandler : MonoBehaviour {
 
       // Init security token
       _SecurityToken_ = GetComponent<Security>().iniSecurityToken();
+      SetServerAdress();
       
       // Init Socket IO
-      socket = new SocketIOUnity(serverURL, new SocketIOOptions {
+      socket = new SocketIOUnity(serverAdress, new SocketIOOptions {
          Query = new Dictionary<string, string> {
             {"token", "UNITY" }
          },
@@ -295,8 +299,10 @@ public class GameHandler : MonoBehaviour {
       failedConnectText.SetActive(false);
       findBattleMenu.SetActive(false);
       optionsClicked.SetActive(false);
+      customizeMenu.SetActive(true); // Fix AnimController error
       customizeMenu.SetActive(false);
       messageUI.SetActive(false);
+      serverAdressField.gameObject.SetActive(false);
 
       Vibration.Init();
       SwitchToMainMenu();
@@ -421,6 +427,29 @@ public class GameHandler : MonoBehaviour {
       if(isLoadBarUpdatable) loadingBarSprite.fillAmount += loginBarValue *Time.deltaTime;
    }
    
+   public void DEBUG_PlayerPrefs() {
+
+      string[] PrefsArray = new string[] {
+
+         // InputFiedls
+         PlayerPrefs.GetString("PlayerName"),
+         PlayerPrefs.GetString("BattleName"),
+         PlayerPrefs.GetString("ServerAdress"),
+
+         // Custom
+         PlayerPrefs.GetString("SelectedOption"),
+         PlayerPrefs.GetString("CaseFrame"),
+         PlayerPrefs.GetString("CornerFrame"),
+         PlayerPrefs.GetString("HealthFrame"),
+         PlayerPrefs.GetString("ShieldFrame"),
+         PlayerPrefs.GetString("Shieldcolor"),
+      };
+
+      for(int i = 0; i < PrefsArray.Length; i++) {
+         Debug.Log(PrefsArray[i]);
+      }
+   }
+
    
    // ===========================================================================================================
    // Public Methods
@@ -579,6 +608,27 @@ public class GameHandler : MonoBehaviour {
       PlayerPrefs.Save();
    }
    
+   public void ToggleServerAdress(bool state) {
+
+      bool shown  = state;
+      bool hidden = !state;
+
+      serverAdressField.gameObject.SetActive(shown);
+
+      for(int i = 0; i < panelsBtn.Length; i++) {
+         GameObject button = panelsBtn[i];
+
+         if(button.name == "ModifyServ") button.SetActive(hidden);
+         if(button.name == "Validate"  ) button.SetActive(shown);
+      }
+   }
+
+   public void ValidateServerAdress() {
+
+      PlayerPrefs.SetString("ServerAdress", serverAdressField.text);
+      PlayerPrefs.Save();
+   }
+
    // Languages
    public void ToggleFrench() {
 
@@ -627,8 +677,15 @@ public class GameHandler : MonoBehaviour {
    // ===========================================================================================================
    // Private Methods
    // ===========================================================================================================
-   private void Authentification() {
+   private void SetServerAdress() {
 
+      serverAdress = PlayerPrefs.GetString("ServerAdress", baseURL);
+      if(serverAdress == "") serverAdress = baseURL;
+      
+      serverAdressField.text = serverAdress;
+   }
+   
+   private void Authentification() {
       socket.Emit("checkToken", _SecurityToken_);
    }
 
@@ -943,12 +1000,19 @@ public class GameHandler : MonoBehaviour {
    // ===========================================================================================================
    IEnumerator LoadingConnection() {
 
-      connectTimer++;
+      connectTime++;
+      connectMaxTime--;
       
-      if(connectTimer == loginBarDelay) {
+      if(connectTime == loginBarDelay) {
          isLoadBarUpdatable = true;
          loadingBarSprite.fillAmount = 0f;
          loadingBarAnim.SetTrigger("Show");
+      }
+
+      if(connectMaxTime <= 0) {
+         AuthentificationFailed();
+         loadingBarAnim.SetTrigger("Hide");
+         yield break;
       }
       
       yield return new WaitForSeconds(1f);

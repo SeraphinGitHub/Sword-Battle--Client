@@ -174,9 +174,7 @@ public class PlayerHandler : MonoBehaviour {
       InitPlayerStats();
 
       // Set player start animation
-      SetPlayerAnim("Body", "Idle");
-      SetPlayerAnim("Sword", "Idle");
-      SetPlayerAnim("Shield", "Idle");
+      SetIdleAnim();
    }
 
    // Player & Enemy movements sync
@@ -249,10 +247,7 @@ public class PlayerHandler : MonoBehaviour {
    public void PlayerRespawn() {
       
       ResetPlayer();
-   
-      // ****** Tempory ******
-      transform.localScale = new Vector3(10f, 10f, 1f);
-      // ****** Tempory ******
+      SetIdleAnim();
       
       isDead     = false;
       isFighting = true;
@@ -260,6 +255,13 @@ public class PlayerHandler : MonoBehaviour {
 
 
    // === Private ===
+   private void SetIdleAnim() {
+
+      SetPlayerAnim("Body",   "Idle");
+      SetPlayerAnim("Sword",  "Idle");
+      SetPlayerAnim("Shield", "Idle");
+   }
+
    private void  InitPlayerStats() {
 
       HealthBarChange(); // Refuel health bar
@@ -391,8 +393,11 @@ public class PlayerHandler : MonoBehaviour {
       shieldHealth = 0;
       ShieldBarChange(); // Loose all segments
 
+      SetPlayerAnim("Body",   "Die");
+      SetPlayerAnim("Sword",  "Die");
+      SetPlayerAnim("Shield", "Die");
+
       isDead = true;
-      transform.localScale = Vector3.zero;
 
       gameHandler.ToggleWinnerText(winnerName);
       gameHandler.BattleLoose();

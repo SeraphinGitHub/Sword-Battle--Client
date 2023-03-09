@@ -728,7 +728,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5382756980772528738
 Transform:
   m_ObjectHideFlags: 0
@@ -1555,7 +1555,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &2955433462753322853
 Transform:
   m_ObjectHideFlags: 0
@@ -1623,7 +1623,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3035782308425989814}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -9, y: -5.3625, z: 0}
+  m_LocalPosition: {x: 0, y: 0.1875, z: 0}
   m_LocalScale: {x: 10, y: 10, z: 1}
   m_Children:
   - {fileID: 5382756980772528738}
@@ -1694,7 +1694,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64b56dda512c2b24ba3bc825515808a0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  capsuleCollider: {fileID: 6166793523346163508}
   swordColliders:
   - {fileID: 7592090124215927380}
   - {fileID: 7596606578906945309}
@@ -1713,13 +1712,12 @@ MonoBehaviour:
   bodyAnimators:
   - {fileID: 777464222194713833}
   - {fileID: 9035671197882185220}
-  sidePos: 0
   damagesValue: 0
+  sidePos: 0
   playerHealth: 0
   shieldHealth: 0
   spawnX: 6.5
   spawnY: 0.2
-  posX: 0
   walkDirX: 0
   playerSpeed: 0
   isDead: 0

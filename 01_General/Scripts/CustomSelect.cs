@@ -12,6 +12,9 @@ public class CustomSelect: MonoBehaviour {
    [Header("**Attached Square Array**")]
    public GameObject[] selectArray = new GameObject[2];
 
+   // Private Variables
+   private float animDelay = 0.2f;
+
 
    // ===========================================================================================================
    // Awake() / Start()
@@ -23,17 +26,13 @@ public class CustomSelect: MonoBehaviour {
       for(int i = 0; i < selectArray.Length; i++) {
          GameObject elem = selectArray[i];
 
-         elem.GetComponent<Animator>().enabled = false;
-
-         if(elem.name == selectedName) continue;
-         elem.GetComponent<RectTransform>().localScale = Vector3.zero;
-      }
-   }
-
-   private void Start() {
-
-      for(int i = 0; i < selectArray.Length; i++) {
-         selectArray[i].GetComponent<Animator>().enabled = true;
+         if(elem.name == selectedName) {
+            elem.GetComponent<ElemSelected>().isElemSelected = true;
+         }
+         
+         else {
+            elem.GetComponent<RectTransform>().localScale = Vector3.zero;
+         }
       }
    }
 
@@ -43,23 +42,42 @@ public class CustomSelect: MonoBehaviour {
    // ===========================================================================================================
    public void ToggleSelection(GameObject selection) {
 
-      Vector3 selectionScale = selection.GetComponent<RectTransform>().localScale;
+      bool isSelected = selection.GetComponent<ElemSelected>().isElemSelected;
 
-      if(selectionScale != Vector3.zero) return;
-
-      selection.GetComponent<Animator>().SetTrigger("ShowSelect");
+      if(isSelected) return;
+      StartCoroutine( TriggerSelection(selection) );
 
       // Save Option
       PlayerPrefs.SetString(categoryName, selection.name);
       PlayerPrefs.Save();
+   }
+
+
+   // ===========================================================================================================
+   // Coroutines
+   // ===========================================================================================================
+   IEnumerator TriggerSelection(GameObject selection) {
+      
+      for(int i = 0; i < selectArray.Length; i++) {
+         GameObject elem = selectArray[i];
+
+         if(elem.GetComponent<ElemSelected>().isElemSelected) {
+            elem.GetComponent<Animator>().SetTrigger("HideSelect");
+         }
+         
+         else elem.GetComponent<ElemSelected>().isElemSelected = true;
+      }
+
+      selection.GetComponent<Animator>().SetTrigger("ShowSelect");
+
+      yield return new WaitForSeconds(animDelay);
 
       for(int i = 0; i < selectArray.Length; i++) {
          GameObject elem = selectArray[i];
 
-         if(elem == selection) continue;
-         if(elem.GetComponent<RectTransform>().localScale == Vector3.zero) continue;
-         
-         elem.GetComponent<Animator>().SetTrigger("HideSelect");
+         if(elem.name != selection.name) {
+            elem.GetComponent<ElemSelected>().isElemSelected = false;
+         }
       }
    }
 

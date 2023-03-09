@@ -13,7 +13,7 @@ public class CustomList: MonoBehaviour {
    public GameObject[] optionArray        = new GameObject[4];
 
    [Header("**Attached Shield Sprite Array**")]
-   public Image[] shieldGetColorArray     = new Image[6];
+   public Image[] shieldBaseSpriteArray   = new Image[6];
    public Image[] shieldOptionArray       = new Image[6];
 
    [Header("**Attached Case Array**")]
@@ -36,10 +36,16 @@ public class CustomList: MonoBehaviour {
 
 
    // Private Variables 
-   private float  optionAnimDelay = 0.6f;
-   private string optionCategory  = "SelectedOption";
+   private float  animDelay      = 0.35f;
+   private string optionCategory = "SelectedOption";
    private string categoryName;
-   private bool   isOpeningOption = false;
+   private string[] categoryNameArray = new string[] {
+      "CaseFrame",
+      "CornerFrame",
+      "HealthFrame",
+      "ShieldFrame",
+      "ShieldColor",
+   };
 
    private GameObject[][] caseFrameArray;
    private GameObject[][] cornerFrameArray;
@@ -47,13 +53,17 @@ public class CustomList: MonoBehaviour {
    private GameObject[][] shieldFrameArray;
    private Image[][]      shieldColorArray;
 
+   private GameHandler gameHandler;
+
 
    // ===========================================================================================================
    // Awake() / Start()
    // ===========================================================================================================
    private void Awake() {
 
-      caseFrameArray = new GameObject[][] {
+      categoryName = PlayerPrefs.GetString(optionCategory, defaultOption.name);
+
+      caseFrameArray   = new GameObject[][] {
          goldCaseArray,
          silverCaseArray,
       };
@@ -74,16 +84,15 @@ public class CustomList: MonoBehaviour {
          goldShieldArray,
          silverShieldArray,
       };
+
    }
    
    private void Start() {
 
-      string selectedOption = PlayerPrefs.GetString(optionCategory, defaultOption.name);
-      SetOptionStatus(selectedOption);
+      StartCoroutine( TriggerOption(defaultOption) );
 
-      categoryName = selectedOption;
-      
-      Image[][] tempShieldArray = GetComponent<GameHandler>().shieldLifeSpritesArray;
+      gameHandler = GetComponent<GameHandler>();
+      Image[][] tempShieldArray = gameHandler.shieldLifeSpritesArray;
 
       shieldColorArray = new Image[][] {
          tempShieldArray[0],
@@ -99,27 +108,21 @@ public class CustomList: MonoBehaviour {
    // Public Methods
    // ===========================================================================================================
    public void ToggleOption(GameObject option) {
-      
-      bool isElemSelected = option.GetComponent<ElemSelected>().isElemSelected;
-      
-      if(!option.activeSelf
-      && !isElemSelected
-      && !isOpeningOption) {
 
-         isOpeningOption = true;
-         option.GetComponent<ElemSelected>().isElemSelected = true;
+      bool isSelected = option.GetComponent<ElemSelected>().isElemSelected;
 
-         // Save Option
-         PlayerPrefs.SetString(optionCategory, option.name);
-         PlayerPrefs.Save();
+      if(isSelected) return;
+      StartCoroutine( TriggerOption(option) );
 
-         StartCoroutine( TriggerOption(option) );
-      }
+      // Save Option
+      PlayerPrefs.SetString(optionCategory, option.name);
+      PlayerPrefs.Save();
    }
 
    public void UpdateCategory(GameObject category) {
 
       categoryName = category.name;
+      gameHandler.VibrateButton();
    }
 
    public void UpdateUI(GameObject elem) {
@@ -142,27 +145,24 @@ public class CustomList: MonoBehaviour {
             SetShieldColor(elem.name);
          break;
       }
+
+      gameHandler.VibrateButton();
+   }
+
+   public void ResetCustom() {
+      
+      for(int i = 0; i < categoryNameArray.Length; i++) {
+         PlayerPrefs.DeleteKey(categoryNameArray[i]);
+      }
+
+      PlayerPrefs.Save();
+      SetSavedCustom();
    }
 
 
    // ===========================================================================================================
    // Private Methods
    // ===========================================================================================================
-   private void SetOptionStatus(string optionName) {
-
-      for(int i = 0; i < optionArray.Length; i++) {
-         GameObject option = optionArray[i];
-
-         if(option.name == optionName) {
-            option.SetActive(true);
-            continue;
-         }
-
-         option.SetActive(false);
-         option.GetComponent<ElemSelected>().isElemSelected = false;
-      }
-   }
-
    private void CycleObjectArray(GameObject[] elemArray, bool state) {
 
       for(int i = 0; i < elemArray.Length; i++) {
@@ -172,30 +172,25 @@ public class CustomList: MonoBehaviour {
 
    private void CycleImageArray(Image[][] spriteArray, int indexRef) {
 
-      Image spriteRef = shieldGetColorArray[indexRef];
+      Image spriteRef = shieldBaseSpriteArray[indexRef];
 
       for(int i = 0; i < spriteArray.Length; i++) {
          for(int k = 0; k < spriteArray[i].Length; k++) {
             
             Image spriteToSet  = spriteArray[i][k];
             spriteToSet.sprite = spriteRef.sprite;
+            spriteToSet.color  = spriteRef.color;
          }
       }
    }
 
    private void SetSavedCustom() {
 
-      string caseFrame   = PlayerPrefs.GetString("CaseFrame",   "SelectGold");
-      string cornerFrame = PlayerPrefs.GetString("CornerFrame", "SelectGold1");
-      string healthFrame = PlayerPrefs.GetString("HealthFrame", "SelectSilver");
-      string shieldFrame = PlayerPrefs.GetString("ShieldFrame", "SelectSilver");
-      string shieldColor = PlayerPrefs.GetString("ShieldColor", "SelectYellow");
-
-      SetCaseFrame  (caseFrame);
-      SetCornerFrame(cornerFrame);
-      SetHealthFrame(healthFrame);
-      SetShieldFrame(shieldFrame);
-      SetShieldColor(shieldColor);
+      SetCaseFrame  ( PlayerPrefs.GetString(categoryNameArray[0], "SelectGold"  ) );
+      SetCornerFrame( PlayerPrefs.GetString(categoryNameArray[1], "SelectGold1" ) );
+      SetHealthFrame( PlayerPrefs.GetString(categoryNameArray[2], "SelectSilver") );
+      SetShieldFrame( PlayerPrefs.GetString(categoryNameArray[3], "SelectSilver") );
+      SetShieldColor( PlayerPrefs.GetString(categoryNameArray[4], "SelectYellow") );
    }
 
    // Switch statements
@@ -311,13 +306,28 @@ public class CustomList: MonoBehaviour {
    // Coroutines
    // ===========================================================================================================
    IEnumerator TriggerOption(GameObject option) {
+
+      for(int i = 0; i < optionArray.Length; i++) {
+         GameObject elem = optionArray[i];
+         elem.GetComponent<ElemSelected>().isElemSelected = true;
+      }
       
       listAnim.SetTrigger("HideOptions");
-      
-      yield return new WaitForSeconds(optionAnimDelay);
-      
-      SetOptionStatus(option.name);
+      yield return new WaitForSeconds(animDelay);
+
+      // Hide Old Option && Show current Option
+      for(int i = 0; i < optionArray.Length; i++) {
+         GameObject elem = optionArray[i];
+         elem.SetActive(false);
+         if(elem.name == option.name) elem.SetActive(true);
+      }
+
       listAnim.SetTrigger("ShowOptions");
-      isOpeningOption = false;
+      yield return new WaitForSeconds(animDelay);
+      
+      for(int i = 0; i < optionArray.Length; i++) {
+         GameObject elem = optionArray[i];
+         if(elem.name != option.name) elem.GetComponent<ElemSelected>().isElemSelected = false;
+      }
    }
 }
